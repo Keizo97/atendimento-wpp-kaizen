@@ -1,9 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ConversaChat from './ConversaChat'
 import type { ConversaRow, MensagemRealtime } from './types'
+
+// Rede de seguranca: mesmo que o Realtime falhe por algum motivo (rede,
+// extensao do navegador, etc.), a lista de conversas se atualiza sozinha
+// dentro desse intervalo.
+const INTERVALO_POLLING_MS = 5_000
 
 export default function Inbox({
   conversasIniciais,
@@ -17,6 +22,23 @@ export default function Inbox({
     conversasIniciais[0]?.id ?? null
   )
   const [mensagensNovas, setMensagensNovas] = useState<MensagemRealtime[]>([])
+
+  const buscarConversas = useCallback(async () => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('yumiwpp_conversas')
+      .select('id, telefone, modo, status, assumido_por, updated_at, yumiwpp_clientes(nome)')
+      .eq('status', 'aberta')
+      .order('updated_at', { ascending: false })
+
+    if (data) setConversas(data as unknown as ConversaRow[])
+  }, [])
+
+  // Rede de seguranca: busca de novo periodicamente, independente do Realtime.
+  useEffect(() => {
+    const intervalo = setInterval(buscarConversas, INTERVALO_POLLING_MS)
+    return () => clearInterval(intervalo)
+  }, [buscarConversas])
 
   useEffect(() => {
     const supabase = createClient()

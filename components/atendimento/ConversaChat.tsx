@@ -1,8 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { ConversaRow, Mensagem, MensagemRealtime } from './types'
+
+// Rede de seguranca: mesmo que o Realtime falhe, o chat busca mensagem nova
+// sozinho dentro desse intervalo.
+const INTERVALO_POLLING_MS = 2_500
 
 export default function ConversaChat({
   conversa,
@@ -19,11 +23,28 @@ export default function ConversaChat({
   const fimRef = useRef<HTMLDivElement>(null)
   const modo = conversa.modo
 
-  // Busca inicial: so precisa rodar quando troca de conversa. Atualizacoes ao
-  // vivo chegam via mensagensNovas (canal unico e global, aberto no Inbox).
-  useEffect(() => {
+  const buscarMensagens = useCallback(async () => {
     const supabase = createClient()
+    const { data } = await supabase
+      .from('yumiwpp_mensagens')
+      .select('id, autor, texto, created_at')
+      .eq('conversa_id', conversa.id)
+      .order('created_at', { ascending: true })
+      .limit(200)
+
+    if (!data) return
+
+    setMensagens((atuais) => {
+      const idsExistentes = new Set(atuais.map((m) => m.id))
+      const novas = (data as Mensagem[]).filter((m) => !idsExistentes.has(m.id))
+      return novas.length > 0 ? [...atuais, ...novas] : atuais
+    })
+  }, [conversa.id])
+
+  // Busca inicial ao trocar de conversa (substitui a lista toda).
+  useEffect(() => {
     let ativo = true
+    const supabase = createClient()
 
     supabase
       .from('yumiwpp_mensagens')
@@ -39,6 +60,12 @@ export default function ConversaChat({
       ativo = false
     }
   }, [conversa.id])
+
+  // Rede de seguranca: busca mensagem nova sozinho, independente do Realtime.
+  useEffect(() => {
+    const intervalo = setInterval(buscarMensagens, INTERVALO_POLLING_MS)
+    return () => clearInterval(intervalo)
+  }, [buscarMensagens])
 
   useEffect(() => {
     if (mensagensNovas.length === 0) return
