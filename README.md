@@ -120,12 +120,31 @@ adicionar um `console.log(JSON.stringify(body))` no topo do `POST` em
 `app/api/webhook/zapi/route.ts` pra ver o payload de verdade e ajustar `extrairTexto`
 e os nomes de campo.
 
+## Realtime (Supabase)
+
+Duas coisas que travaram a tela de atendimento em teste, corrigidas:
+
+1. **RLS bloqueava o Realtime em silêncio.** As policies de `yumiwpp_conversas`/
+   `yumiwpp_mensagens` chamavam uma função que consulta `yumiwpp_profiles`
+   (subquery). O Realtime não avalia esse tipo de policy — a escrita via REST
+   funcionava normal, mas o evento nunca chegava no navegador, sem erro nenhum.
+   Fix em `supabase/migrations/0002_realtime_select.sql`: policy de SELECT
+   separada (`using (true)`) só nessas duas tabelas, sem lookup em outra tabela.
+   Efeito colateral aceito: qualquer usuário logado consegue *ler* essas duas
+   tabelas via API direta (a tela `/atendimento` continua bloqueada por papel).
+
+2. **Toda subscription de Realtime mora no `Inbox`, não no `ConversaChat`.**
+   Um único client Supabase (singleton em `lib/supabase/client.ts`) e duas
+   channels no `Inbox` (conversas + mensagens, sem filtro). O `ConversaChat`
+   recebe tudo por prop e não abre canal próprio. Isso é mais simples e evita
+   múltiplas conexões WebSocket concorrentes.
+
 ## Fases
 
 - [x] 1. Schema Supabase + RLS
 - [x] 2. Esqueleto Next.js (login, papeis, tres areas)
 - [x] 3. Ponte WhatsApp (`/api/webhook/zapi`, `/api/enviar`, dedupe) — payload nao validado ainda
 - [x] 4. Yumi (OpenAI + contexto do banco + escalada por tool call)
-- [ ] 5. Inbox ao vivo (Realtime, assumir/devolver)
+- [x] 5. Inbox ao vivo (Realtime, assumir/devolver)
 - [ ] 6. Telas do editor e do admin
 - [ ] 7. PWA + deploy no Coolify

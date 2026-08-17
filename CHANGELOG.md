@@ -82,4 +82,51 @@
 ### Pendente
 - Validar payload real da Z-API (primeiro webhook de teste).
 - Chaves: `ZAPI_*`, `OPENAI_API_KEY`.
-- Fases 5 a 7.
+- Fases 6 e 7.
+
+## [2026-08-17] — Sessao 3: fase 5 (atendimento ao vivo)
+
+### Atencao — Supabase de teste vs producao
+Durante a sessao, dados de teste (cliente falso, conversa, mensagens, um
+usuario admin descartavel) foram inseridos por engano achando que o projeto
+Supabase "Kaizen" (main) era producao do Kaizen-menu. Keizo confirmou que
+esse projeto e o BANCO DE TESTE dele — a producao de verdade vem depois.
+Nada foi apagado do schema do Kaizen-menu (`categories`, `items`, `menus`
+etc.), so foi confirmado visualmente. Registrando aqui pra próxima sessao
+não reabrir essa duvida.
+
+### Criado
+- `components/atendimento/Inbox.tsx` — lista de conversas abertas, Realtime,
+  seleciona conversa.
+- `components/atendimento/ConversaChat.tsx` — chat da conversa selecionada,
+  botao assumir/devolver, formulario de envio (chama `/api/enviar`).
+- `components/atendimento/types.ts` — `ConversaRow`, `Mensagem`, `MensagemRealtime`.
+- `app/atendimento/page.tsx` — Server Component, busca conversas abertas
+  (join com `yumiwpp_clientes`) e injeta no `Inbox`.
+- `supabase/migrations/0002_realtime_select.sql`.
+
+### Corrigido (bug real, achado testando no navegador)
+RLS com `security definer` function que consulta outra tabela quebra o
+Realtime em silencio (evento nunca chega, sem erro). Ver secao "Realtime
+(Supabase)" no README pra detalhe tecnico e o tradeoff de seguranca aceito.
+
+### Alterado
+- `lib/supabase/client.ts` — client do navegador virou singleton (evita
+  socket duplicado por componente).
+- Toda subscription de Realtime centralizada no `Inbox`; `ConversaChat`
+  recebe tudo por prop.
+
+### Verificado
+- Testado de ponta a ponta no navegador (login, lista de conversas, chat,
+  envio, assumir/devolver, Realtime) contra o Supabase de teste real, com
+  usuario admin descartavel criado e removido ao final.
+- `npm run build` limpo.
+
+### Nota de debugging (nao e bug do app)
+Boa parte do tempo desta sessao foi gasto perseguindo Realtime que parecia
+nao entregar eventos DENTRO do componente React, mas funcionava via script
+puro no console com o mesmo client. Causa provavel: a aba do navegador de
+teste do Claude Code nunca fica com `document.hidden = false` (nao esta
+sendo composta/exibida de verdade), o que pode fazer o Chrome atrasar
+entrega de mensagens de WebSocket. Nao e um bug de codigo — teste voce
+mesmo no seu navegador de verdade pra confirmar que esta tudo ok.
