@@ -99,12 +99,33 @@ tools/
   seed-config.mjs # manda o Prompt para yumi.txt pro banco
 ```
 
+## Yumi (fase 4)
+
+Cerebro: **OpenAI** (Chat Completions + function calling), nao Anthropic.
+`OPENAI_API_KEY` e `OPENAI_MODEL` no `.env.local`.
+
+Escalada pra humano e feita por tool call (`escalar_atendimento`), fixa no codigo
+(`lib/yumi/responder.ts`), independente do `system_prompt` que o Editor reescrever
+no `/config`. Assim a regra de escalar nao quebra se alguem editar o prompt errado.
+
+## Webhook Z-API (fase 3)
+
+`/api/webhook/zapi?secret=SEU_ZAPI_WEBHOOK_SECRET` — configurar essa URL completa
+no painel da Z-API, e ligar tambem o webhook **notifySentByMe**.
+
+**Atencao:** o payload usado (`type: "ReceivedCallback"`, `text.message`, `fromMe`,
+`phone`, `messageId`) segue o formato padrao documentado da Z-API, mas **ainda nao foi
+validado com um webhook real**. Se o primeiro teste nao gravar mensagem no banco,
+adicionar um `console.log(JSON.stringify(body))` no topo do `POST` em
+`app/api/webhook/zapi/route.ts` pra ver o payload de verdade e ajustar `extrairTexto`
+e os nomes de campo.
+
 ## Fases
 
 - [x] 1. Schema Supabase + RLS
 - [x] 2. Esqueleto Next.js (login, papeis, tres areas)
-- [ ] 3. Ponte WhatsApp (`/api/webhook/zapi`, `/api/enviar`, dedupe)
-- [ ] 4. Yumi (Claude + contexto do banco)
+- [x] 3. Ponte WhatsApp (`/api/webhook/zapi`, `/api/enviar`, dedupe) — payload nao validado ainda
+- [x] 4. Yumi (OpenAI + contexto do banco + escalada por tool call)
 - [ ] 5. Inbox ao vivo (Realtime, assumir/devolver)
 - [ ] 6. Telas do editor e do admin
 - [ ] 7. PWA + deploy no Coolify

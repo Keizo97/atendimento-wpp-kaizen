@@ -35,5 +35,51 @@
 
 ### Pendente
 - Preencher `Prompt para yumi.txt` e rodar `npm run seed`.
-- Chaves: `ZAPI_*`, `ANTHROPIC_API_KEY`, `LINK_RESERVA`, `LINK_FILA`, dominio.
-- Fases 3 a 7.
+- Chaves: `ZAPI_*`, `OPENAI_API_KEY`, `LINK_RESERVA`, `LINK_FILA`, dominio.
+- Fases 5 a 7.
+
+## [2026-08-17] — Sessao 2: login + fases 3 e 4
+
+### Corrigido
+- Migration reordenada (tabelas antes das funcoes `language sql`) — bug travava
+  a criacao de `yumiwpp_meu_role`.
+- Bug de login: `.env.local` tinha a chave publishable colada no lugar da
+  `NEXT_PUBLIC_SUPABASE_URL`. Corrigido pelo Keizo.
+- Usuario criado no Supabase Auth antes do trigger `yumiwpp_on_auth_user_created`
+  existir ficou sem `yumiwpp_profiles` -> login voltava pra tela de login sem erro.
+  Corrigido com insert manual do profile.
+
+### Decisao
+- Cerebro da Yumi trocado de **Anthropic/Claude** (definido no briefing original)
+  para **OpenAI**, a pedido do Keizo. `.env.example` atualizado: `ANTHROPIC_*` saiu,
+  entrou `OPENAI_API_KEY` e `OPENAI_MODEL`.
+- Escalada pra humano implementada como **tool call** (`escalar_atendimento`) fixo
+  no codigo, nao por palavra-chave no texto nem dependente do `system_prompt`
+  editavel — assim continua funcionando mesmo se o Editor reescrever o prompt.
+- Payload do webhook Z-API seguido pelo formato padrao documentado
+  (`ReceivedCallback`, `text.message`, `fromMe`, `phone`, `messageId`), **sem
+  confirmacao com um webhook real ainda**. Ver aviso no README.
+
+### Criado
+- `lib/whatsapp/zapi.ts` — `enviarMensagem()`, mesmo padrao do Kaizen-reservas
+  (`POST /instances/{instance}/token/{token}/send-text`, header `Client-Token`).
+- `lib/whatsapp/clientes.ts` — `upsertCliente()` e `conversaAberta()`.
+- `lib/yumi/valores.ts` — formata `yumiwpp_valores` pro contexto da IA.
+- `lib/yumi/responder.ts` — chama OpenAI (Chat Completions + tool `escalar_atendimento`).
+- `app/api/webhook/zapi/route.ts` — entrada: valida `?secret=`, distingue mensagem
+  do cliente vs eco/takeover (`fromMe`), dedupe por `zapi_message_id` (unique index
+  + fallback no erro `23505`), roda a Yumi quando `modo=bot`.
+- `app/api/enviar/route.ts` — saida manual do gerente, autenticada por sessao.
+
+### Alterado
+- `npm uninstall @anthropic-ai/sdk` / `npm install openai`.
+- `.env.example` — bloco Anthropic trocado por OpenAI.
+
+### Verificado
+- `npm run build` passa, rotas `/api/enviar` e `/api/webhook/zapi` aparecem como
+  dinamicas.
+
+### Pendente
+- Validar payload real da Z-API (primeiro webhook de teste).
+- Chaves: `ZAPI_*`, `OPENAI_API_KEY`.
+- Fases 5 a 7.
