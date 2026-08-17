@@ -20,50 +20,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- ------------------------------------------------------------
--- 2. FUNCOES AUXILIARES
--- ------------------------------------------------------------
-
--- Atualiza updated_at automaticamente
-create or replace function yumiwpp_set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
--- Le o papel do usuario logado.
--- SECURITY DEFINER evita recursao infinita nas policies de yumiwpp_profiles.
-create or replace function yumiwpp_meu_role()
-returns yumiwpp_role
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select role from yumiwpp_profiles where id = auth.uid();
-$$;
-
--- Atalhos de permissao
-create or replace function yumiwpp_pode_atender()
-returns boolean language sql stable security definer set search_path = public as $$
-  select yumiwpp_meu_role() in ('gerente', 'admin');
-$$;
-
-create or replace function yumiwpp_pode_editar()
-returns boolean language sql stable security definer set search_path = public as $$
-  select yumiwpp_meu_role() in ('editor', 'admin');
-$$;
-
-create or replace function yumiwpp_e_admin()
-returns boolean language sql stable security definer set search_path = public as $$
-  select yumiwpp_meu_role() = 'admin';
-$$;
-
--- ------------------------------------------------------------
--- 3. TABELAS
+-- 2. TABELAS
 -- ------------------------------------------------------------
 
 -- Usuarios do painel (espelha auth.users)
@@ -151,6 +108,50 @@ create table if not exists yumiwpp_integracoes (
   descricao  text,
   updated_at timestamptz not null default now()
 );
+
+-- ------------------------------------------------------------
+-- 3. FUNCOES AUXILIARES (depois das tabelas: funcoes "language sql"
+--    validam a existencia das tabelas na hora da criacao)
+-- ------------------------------------------------------------
+
+-- Atualiza updated_at automaticamente
+create or replace function yumiwpp_set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- Le o papel do usuario logado.
+-- SECURITY DEFINER evita recursao infinita nas policies de yumiwpp_profiles.
+create or replace function yumiwpp_meu_role()
+returns yumiwpp_role
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from yumiwpp_profiles where id = auth.uid();
+$$;
+
+-- Atalhos de permissao
+create or replace function yumiwpp_pode_atender()
+returns boolean language sql stable security definer set search_path = public as $$
+  select yumiwpp_meu_role() in ('gerente', 'admin');
+$$;
+
+create or replace function yumiwpp_pode_editar()
+returns boolean language sql stable security definer set search_path = public as $$
+  select yumiwpp_meu_role() in ('editor', 'admin');
+$$;
+
+create or replace function yumiwpp_e_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select yumiwpp_meu_role() = 'admin';
+$$;
 
 -- ------------------------------------------------------------
 -- 4. TRIGGERS
