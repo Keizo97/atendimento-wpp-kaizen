@@ -104,9 +104,14 @@ tools/
 Cerebro: **OpenAI** (Chat Completions + function calling), nao Anthropic.
 `OPENAI_API_KEY` e `OPENAI_MODEL` no `.env.local`.
 
-Escalada pra humano e feita por tool call (`escalar_atendimento`), fixa no codigo
-(`lib/yumi/responder.ts`), independente do `system_prompt` que o Editor reescrever
-no `/config`. Assim a regra de escalar nao quebra se alguem editar o prompt errado.
+Escalada pra humano e feita por tool call (`escalar_humano`, com `motivo`/
+`prioridade`/`resumo`), fixa no codigo (`lib/yumi/responder.ts`). O nome e os
+parametros da tool tem que bater com o que o `Prompt para yumi.txt` instrui —
+se editar um lado, edita o outro.
+
+`{{LINK_RESERVA}}` e `{{LINK_FILA}}` no prompt (editavel em `/config`) sao
+trocados pelos valores reais de `NEXT_PUBLIC_LINK_RESERVA`/`NEXT_PUBLIC_LINK_FILA`
+em runtime, dentro de `gerarResposta()`.
 
 ## Webhook Z-API (fase 3)
 
@@ -139,6 +144,41 @@ Duas coisas que travaram a tela de atendimento em teste, corrigidas:
    recebe tudo por prop e não abre canal próprio. Isso é mais simples e evita
    múltiplas conexões WebSocket concorrentes.
 
+## PWA (fase 7)
+
+`app/manifest.ts` gera o `manifest.webmanifest`. Ícone em `public/icon.svg`
+(placeholder simples "Y" — trocar por um de verdade quando tiver a arte final,
+só sobrescrever o arquivo). Sem service worker de proposito: o app não precisa
+funcionar offline, só ficar instalável. No celular, "Adicionar à tela de início"
+pelo menu do navegador já funciona.
+
+## Deploy no Coolify (fase 7)
+
+App já testado no Render; isso aqui é pro deploy final.
+
+1. Coolify > **New Resource > Application** > aponta pro repo
+   `github.com/Keizo97/atendimento-wpp-kaizen`.
+2. **Build Pack:** Dockerfile (usa o `Dockerfile` da raiz, já pronto — build
+   multi-stage, imagem final só com o necessário pra rodar).
+3. **Porta:** 3000.
+4. **Variáveis de ambiente:** copia tudo do `.env.local`, trocando
+   `NEXT_PUBLIC_APP_URL` pelo domínio final (ex: `https://chat.kaizenjapanese.com.br`)
+   e `ZAPI_WEBHOOK_SECRET` por um valor novo se quiser trocar do que tá no Render.
+5. Configura o domínio no Coolify — SSL é automático (Let's Encrypt).
+6. Depois de no ar, troca a URL do webhook no painel Z-API pra apontar pro
+   domínio novo (mesmo formato: `https://SEU_DOMINIO/api/webhook/zapi?secret=...`).
+
+Local, pra testar o Dockerfile antes de mandar pro Coolify (precisa Docker
+instalado):
+
+```bash
+docker build -t yumiwpp .
+```
+
+```bash
+docker run -p 3000:3000 --env-file .env.local yumiwpp
+```
+
 ## Fases
 
 - [x] 1. Schema Supabase + RLS
@@ -146,5 +186,5 @@ Duas coisas que travaram a tela de atendimento em teste, corrigidas:
 - [x] 3. Ponte WhatsApp (`/api/webhook/zapi`, `/api/enviar`, dedupe) — payload nao validado ainda
 - [x] 4. Yumi (OpenAI + contexto do banco + escalada por tool call)
 - [x] 5. Inbox ao vivo (Realtime, assumir/devolver)
-- [ ] 6. Telas do editor e do admin
-- [ ] 7. PWA + deploy no Coolify
+- [x] 6. Telas do editor e do admin
+- [x] 7. PWA + deploy no Coolify (Dockerfile pronto, deploy em si e' manual no painel)

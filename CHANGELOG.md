@@ -80,9 +80,52 @@
   dinamicas.
 
 ### Pendente
-- Validar payload real da Z-API (primeiro webhook de teste).
-- Chaves: `ZAPI_*`, `OPENAI_API_KEY`.
+- Validar payload real da Z-API (Eduardo vai ligar o webhook no painel).
 - Fases 6 e 7.
+
+## [2026-08-17] — Sessao 4: deploy Render + fases 6 e 7
+
+### Corrigido
+- `.env.local`: `ANTHROPIC_MODEL` (resquicio, nunca lido pelo codigo) trocado
+  por `OPENAI_MODEL=gpt-5-mini`. `ZAPI_WEBHOOK_SECRET` estava vazio — sem ele
+  o webhook rejeitava tudo com 401 sempre. Gerado e preenchido.
+- Tool da Yumi renomeada de `escalar_atendimento` pra `escalar_humano`, com
+  parametros `motivo`/`prioridade`/`resumo`, pra bater exatamente com o que
+  "Prompt para yumi.txt" (o prompt real, ja escrito) instrui. Nomes
+  diferentes = a IA nunca aciona a funcao.
+- `{{LINK_RESERVA}}` e `{{LINK_FILA}}` no prompt agora sao substituidos pelos
+  valores reais em runtime (`lib/yumi/responder.ts`) — antes ficavam
+  literais na mensagem.
+- Prompt real carregado no banco via `npm run seed`.
+
+### Deploy de teste
+- App publicado no Render: https://atendimento-wpp-kaizen.onrender.com
+  (repo: github.com/Keizo97/atendimento-wpp-kaizen).
+- Webhook validado: 401 sem `?secret=`, 200 com secret correto.
+- Falta: Eduardo configurar a URL do webhook no painel Z-API
+  (`/api/webhook/zapi?secret=...` + notifySentByMe) pra testar de ponta a ponta.
+
+### Criado (fase 6)
+- `/config` — editor de `system_prompt`/`knowledge_base` e CRUD de
+  `yumiwpp_valores` (`app/config/actions.ts`, `components/config/`).
+- `/admin` — criar usuario (senha temporaria gerada, sem depender de e-mail),
+  mudar papel, painel read-only de quais variaveis de integracao estao
+  configuradas (`app/admin/actions.ts`, `components/admin/`).
+
+### Criado (fase 7)
+- `app/manifest.ts` + `public/icon.svg` — PWA instalavel (sem service worker
+  de proposito, app nao precisa funcionar offline).
+- `Dockerfile` multi-stage (`output: 'standalone'` no `next.config.ts`) +
+  `.dockerignore` (importante: sem ele o `.env.local` vazaria pra dentro da
+  imagem via `COPY . .`).
+- Secao de deploy no Coolify no README.
+
+### Verificado
+- Testado no navegador contra o Supabase de teste: `/config` carrega o
+  prompt real, `/admin` lista usuarios reais com papel e mostra integracoes
+  configuradas.
+- `npm run build` gera `.next/standalone/server.js` corretamente.
+- `npm run build` limpo em todos os pontos da sessao.
 
 ## [2026-08-17] — Sessao 3: fase 5 (atendimento ao vivo)
 
