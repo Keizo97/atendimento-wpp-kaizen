@@ -9,7 +9,9 @@ export default async function AtendimentoPage() {
 
   const { data: conversas } = await supabase
     .from('yumiwpp_conversas')
-    .select('id, telefone, modo, status, assumido_por, updated_at, yumiwpp_clientes(nome)')
+    .select(
+      'id, telefone, modo, status, assumido_por, updated_at, yumiwpp_clientes(nome), atendente:yumiwpp_profiles(nome)'
+    )
     .eq('status', 'aberta')
     .order('updated_at', { ascending: false })
 

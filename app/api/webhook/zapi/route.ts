@@ -8,6 +8,7 @@ import { enviarMensagem } from '@/lib/whatsapp/zapi'
 import { upsertCliente, conversaAberta } from '@/lib/whatsapp/clientes'
 import { buscarValoresTexto } from '@/lib/yumi/valores'
 import { gerarResposta, type MensagemHistorico } from '@/lib/yumi/responder'
+import { notificarAtendentes } from '@/lib/whatsapp/notificar'
 
 const CONTEXTO_MENSAGENS = Number(process.env.YUMI_CONTEXT_MESSAGES) || 20
 const MENSAGEM_ESCALADA = 'Ja estou chamando alguem pra te ajudar, so um instante 🙏'
@@ -147,7 +148,19 @@ export async function POST(request: NextRequest) {
       `[yumi] escalada — telefone=${telefone} motivo=${resposta.motivo} prioridade=${resposta.prioridade} resumo=${resposta.resumo}`
     )
 
-    await admin.from('yumiwpp_conversas').update({ modo: 'humano' }).eq('id', conversa.id)
+    // assumido_por fica null de proposito: sinaliza "precisando de atendimento"
+    // ate algum gerente clicar em "Assumir atendimento" na tela.
+    await admin
+      .from('yumiwpp_conversas')
+      .update({ modo: 'humano', assumido_por: null })
+      .eq('id', conversa.id)
+
+    await notificarAtendentes(admin, {
+      telefoneCliente: telefone,
+      motivo: resposta.motivo,
+      prioridade: resposta.prioridade,
+      resumo: resposta.resumo,
+    })
 
     const envio = await enviarMensagem(telefone, MENSAGEM_ESCALADA)
     await admin.from('yumiwpp_mensagens').insert({

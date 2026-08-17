@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ConversaChat from './ConversaChat'
-import type { ConversaRow, MensagemRealtime } from './types'
+import { estadoConversa, type ConversaRow, type MensagemRealtime } from './types'
 
 // Rede de seguranca: mesmo que o Realtime falhe por algum motivo (rede,
 // extensao do navegador, etc.), a lista de conversas se atualiza sozinha
@@ -27,7 +27,9 @@ export default function Inbox({
     const supabase = createClient()
     const { data } = await supabase
       .from('yumiwpp_conversas')
-      .select('id, telefone, modo, status, assumido_por, updated_at, yumiwpp_clientes(nome)')
+      .select(
+        'id, telefone, modo, status, assumido_por, updated_at, yumiwpp_clientes(nome), atendente:yumiwpp_profiles(nome)'
+      )
       .eq('status', 'aberta')
       .order('updated_at', { ascending: false })
 
@@ -55,16 +57,21 @@ export default function Inbox({
               return atuais.filter((c) => c.id !== removida.id)
             }
 
-            const nova = payload.new as Omit<ConversaRow, 'yumiwpp_clientes'>
+            const nova = payload.new as Omit<ConversaRow, 'yumiwpp_clientes' | 'atendente'>
 
             if (nova.status !== 'aberta') {
               return atuais.filter((c) => c.id !== nova.id)
             }
 
             const existe = atuais.find((c) => c.id === nova.id)
+            // Payload do Realtime nao traz o join. Se assumido_por mudou pra
+            // alguem novo, o nome so chega no proximo ciclo de polling.
+            const atendenteAtual =
+              existe?.assumido_por === nova.assumido_por ? existe?.atendente ?? null : null
             const linha: ConversaRow = {
               ...nova,
               yumiwpp_clientes: existe?.yumiwpp_clientes ?? null,
+              atendente: atendenteAtual,
             }
 
             const semEla = atuais.filter((c) => c.id !== nova.id)
@@ -101,27 +108,38 @@ export default function Inbox({
         {conversas.length === 0 && (
           <p className="p-4 text-sm text-neutral-500">Nenhuma conversa aberta.</p>
         )}
-        {conversas.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setSelecionadaId(c.id)}
-            className={`flex w-full flex-col gap-0.5 border-b border-neutral-900 px-4 py-3 text-left transition hover:bg-neutral-900 ${
-              c.id === selecionadaId ? 'bg-neutral-900' : ''
-            }`}
-          >
-            <span className="text-sm font-medium">
-              {c.yumiwpp_clientes?.nome || c.telefone}
-            </span>
-            <span className="flex items-center gap-2 text-xs text-neutral-500">
-              <span
-                className={`inline-block h-1.5 w-1.5 rounded-full ${
-                  c.modo === 'humano' ? 'bg-amber-400' : 'bg-emerald-400'
-                }`}
-              />
-              {c.modo === 'humano' ? 'Com humano' : 'Yumi'}
-            </span>
-          </button>
-        ))}
+        {conversas.map((c) => {
+          const estado = estadoConversa(c)
+          return (
+            <button
+              key={c.id}
+              onClick={() => setSelecionadaId(c.id)}
+              className={`flex w-full flex-col gap-0.5 border-b border-neutral-900 px-4 py-3 text-left transition hover:bg-neutral-900 ${
+                c.id === selecionadaId ? 'bg-neutral-900' : ''
+              } ${estado === 'aguardando' ? 'bg-amber-950/20' : ''}`}
+            >
+              <span className="text-sm font-medium">
+                {c.yumiwpp_clientes?.nome || c.telefone}
+              </span>
+              <span className="flex items-center gap-2 text-xs text-neutral-500">
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${
+                    estado === 'aguardando'
+                      ? 'bg-amber-400'
+                      : estado === 'em_atendimento'
+                        ? 'bg-blue-400'
+                        : 'bg-emerald-400'
+                  }`}
+                />
+                {estado === 'aguardando' && (
+                  <span className="font-medium text-amber-400">Precisa de atendimento</span>
+                )}
+                {estado === 'em_atendimento' && `Com ${c.atendente?.nome || 'alguém'}`}
+                {estado === 'bot' && 'Yumi'}
+              </span>
+            </button>
+          )
+        })}
       </aside>
 
       <section className="flex-1">

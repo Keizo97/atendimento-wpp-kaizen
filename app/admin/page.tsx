@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Usuarios from '@/components/admin/Usuarios'
+import Atendentes from '@/components/admin/Atendentes'
 import type { Role } from '@/lib/auth'
 
 const INTEGRACOES = [
@@ -17,9 +18,10 @@ export default async function AdminPage() {
   const supabase = await createClient()
   const admin = createAdminClient()
 
-  const [{ data: profiles }, { data: authData }] = await Promise.all([
+  const [{ data: profiles }, { data: authData }, { data: atendentes }] = await Promise.all([
     supabase.from('yumiwpp_profiles').select('id, nome, role'),
     admin.auth.admin.listUsers(),
+    supabase.from('yumiwpp_atendentes').select('id, nome, numero, ativo').order('nome'),
   ])
 
   const emailPorId = new Map(authData?.users.map((u) => [u.id, u.email ?? '']) ?? [])
@@ -43,6 +45,11 @@ export default async function AdminPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-base font-semibold">Usuários</h2>
         <Usuarios usuarios={usuarios} />
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-base font-semibold">Atendentes (aviso de escalada)</h2>
+        <Atendentes atendentes={atendentes ?? []} />
       </section>
 
       <section>

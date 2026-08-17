@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { ConversaRow, Mensagem, MensagemRealtime } from './types'
+import { estadoConversa, type ConversaRow, type Mensagem, type MensagemRealtime } from './types'
 
 // Rede de seguranca: mesmo que o Realtime falhe, o chat busca mensagem nova
 // sozinho dentro desse intervalo.
@@ -21,7 +21,7 @@ export default function ConversaChat({
   const [texto, setTexto] = useState('')
   const [enviando, startEnviar] = useTransition()
   const fimRef = useRef<HTMLDivElement>(null)
-  const modo = conversa.modo
+  const estado = estadoConversa(conversa)
 
   const buscarMensagens = useCallback(async () => {
     const supabase = createClient()
@@ -98,18 +98,27 @@ export default function ConversaChat({
     })
   }
 
-  async function alternarModo() {
+  // Sem setState local em nenhuma das tres: o Inbox ja atua no canal de
+  // conversas (+ polling) e propaga o estado novo por prop quando chegar.
+  async function assumirConversa() {
     const supabase = createClient()
-    const novoModo = modo === 'humano' ? 'bot' : 'humano'
     await supabase
       .from('yumiwpp_conversas')
-      .update({
-        modo: novoModo,
-        assumido_por: novoModo === 'humano' ? meuId : null,
-      })
+      .update({ modo: 'humano', assumido_por: meuId })
       .eq('id', conversa.id)
-    // Sem setState local: o Inbox ja atua no canal de conversas e propaga
-    // o modo novo por prop quando o UPDATE chegar.
+  }
+
+  async function assumirAtendimento() {
+    const supabase = createClient()
+    await supabase.from('yumiwpp_conversas').update({ assumido_por: meuId }).eq('id', conversa.id)
+  }
+
+  async function finalizarAtendimento() {
+    const supabase = createClient()
+    await supabase
+      .from('yumiwpp_conversas')
+      .update({ modo: 'bot', assumido_por: null })
+      .eq('id', conversa.id)
   }
 
   return (
@@ -119,18 +128,45 @@ export default function ConversaChat({
           <p className="font-medium">
             {conversa.yumiwpp_clientes?.nome || conversa.telefone}
           </p>
-          <p className="text-xs text-neutral-500">{conversa.telefone}</p>
+          <p className="text-xs text-neutral-500">
+            {conversa.telefone}
+            {estado === 'aguardando' && (
+              <span className="ml-2 rounded bg-amber-950/60 px-1.5 py-0.5 text-[11px] font-medium text-amber-400">
+                Precisa de atendimento
+              </span>
+            )}
+            {estado === 'em_atendimento' && (
+              <span className="ml-2 text-neutral-500">
+                · em atendimento por {conversa.atendente?.nome || 'alguém'}
+              </span>
+            )}
+          </p>
         </div>
-        <button
-          onClick={alternarModo}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-            modo === 'humano'
-              ? 'bg-neutral-100 text-neutral-900 hover:bg-white'
-              : 'border border-neutral-700 text-neutral-300 hover:bg-neutral-800'
-          }`}
-        >
-          {modo === 'humano' ? 'Devolver pra Yumi' : 'Assumir conversa'}
-        </button>
+
+        {estado === 'bot' && (
+          <button
+            onClick={assumirConversa}
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800"
+          >
+            Assumir conversa
+          </button>
+        )}
+        {estado === 'aguardando' && (
+          <button
+            onClick={assumirAtendimento}
+            className="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:bg-amber-400"
+          >
+            Assumir atendimento
+          </button>
+        )}
+        {estado === 'em_atendimento' && (
+          <button
+            onClick={finalizarAtendimento}
+            className="rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 transition hover:bg-white"
+          >
+            Finalizar atendimento
+          </button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">

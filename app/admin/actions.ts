@@ -47,3 +47,25 @@ export async function mudarPapel(userId: string, novoRole: Role) {
   await supabase.from('yumiwpp_profiles').update({ role: novoRole }).eq('id', userId)
   revalidatePath('/admin')
 }
+
+export async function criarAtendente(formData: FormData) {
+  const nome = String(formData.get('nome') ?? '').trim()
+  const numero = String(formData.get('numero') ?? '').trim()
+  if (!nome || !numero) return
+
+  const supabase = await createClient()
+  await supabase.from('yumiwpp_atendentes').insert({ nome, numero })
+  revalidatePath('/admin')
+}
+
+export async function alternarAtivoAtendente(id: string, ativo: boolean) {
+  const supabase = await createClient()
+  await supabase.from('yumiwpp_atendentes').update({ ativo }).eq('id', id)
+  revalidatePath('/admin')
+}
+
+export async function removerAtendente(id: string) {
+  const supabase = await createClient()
+  await supabase.from('yumiwpp_atendentes').delete().eq('id', id)
+  revalidatePath('/admin')
+}
