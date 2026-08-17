@@ -143,6 +143,10 @@ export async function POST(request: NextRequest) {
   })
 
   if (resposta.escalar) {
+    console.log(
+      `[yumi] escalada — telefone=${telefone} motivo=${resposta.motivo} prioridade=${resposta.prioridade} resumo=${resposta.resumo}`
+    )
+
     await admin.from('yumiwpp_conversas').update({ modo: 'humano' }).eq('id', conversa.id)
 
     const envio = await enviarMensagem(telefone, MENSAGEM_ESCALADA)
