@@ -7,5 +7,9 @@ export default async function ConfigLayout({
   children: React.ReactNode
 }) {
   const perfil = await exigirPapel(['editor', 'admin'])
-  return <Shell perfil={perfil}>{children}</Shell>
+  return (
+    <Shell perfil={perfil} ativo="/config">
+      {children}
+    </Shell>
+  )
 }

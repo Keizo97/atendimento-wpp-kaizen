@@ -7,5 +7,9 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const perfil = await exigirPapel(['admin'])
-  return <Shell perfil={perfil}>{children}</Shell>
+  return (
+    <Shell perfil={perfil} ativo="/admin">
+      {children}
+    </Shell>
+  )
 }
