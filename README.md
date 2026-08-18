@@ -38,10 +38,10 @@ seria suficiente.
    chaves de API do passo 3).
 3. Espere o projeto terminar de provisionar (1-2 minutos).
 
-### 2. Rodar os 4 arquivos SQL, **nessa ordem exata**
+### 2. Rodar os 5 arquivos SQL, **nessa ordem exata**
 
 Menu **SQL Editor** → **New query** → cola o conteúdo do arquivo → **Run**.
-Repete pros quatro, um de cada vez, na ordem abaixo (a ordem importa — cada
+Repete pros cinco, um de cada vez, na ordem abaixo (a ordem importa — cada
 um depende do que o anterior criou):
 
 1. `supabase/migrations/0001_init.sql` — cria as 7 tabelas principais
@@ -60,9 +60,12 @@ um depende do que o anterior criou):
    `/admin`), `yumiwpp_uso_ia` (tokens/custo de cada chamada da OpenAI),
    `yumiwpp_escaladas` (histórico de quando a Yumi chamou humano) e
    `yumiwpp_analises` (resultado do motor de análise diária).
+5. `supabase/migrations/0005_modelo_ia.sql` — adiciona as colunas `modelo`
+   e `modelo_analise` em `yumiwpp_config`, pra trocar o modelo da OpenAI
+   pela tela `/admin` sem precisar redeploy.
 
 Se algum der erro de "already exists" é porque já rodou antes — sem problema,
-os quatro são seguros de rodar de novo (idempotentes).
+os cinco são seguros de rodar de novo (idempotentes).
 
 ### 3. Pegar as chaves do Supabase
 
@@ -127,9 +130,12 @@ Detalhe de cada uma:
   novo no passo 8.
 - **`OPENAI_API_KEY`** — https://platform.openai.com/api-keys
 - **`OPENAI_MODEL`** — `gpt-5-mini` é o padrão usado até aqui (bom custo x
-  qualidade). Pode trocar por outro modelo da OpenAI se quiser.
-- **`OPENAI_MODEL_ANALISE`** — opcional. Modelo usado só pelo motor de
-  análise diária (`/dashboard`). Se ficar vazio, usa o mesmo `OPENAI_MODEL`.
+  qualidade). Funciona como *fallback*: dá pra trocar o modelo sem mexer
+  aqui, direto pela tela **`/admin` → Modelo da IA** (mais fácil, não
+  precisa redeploy). Essa variável só importa se o campo em `/admin` ficar
+  em branco.
+- **`OPENAI_MODEL_ANALISE`** — mesma lógica, mas pro motor de análise
+  diária. Também pode ser trocado por `/admin` sem mexer aqui.
 - **`CRON_SECRET`** — protege `POST /api/cron/analise` (o motor de análise
   diária). Gera do mesmo jeito que o `ZAPI_WEBHOOK_SECRET`:
   ```bash

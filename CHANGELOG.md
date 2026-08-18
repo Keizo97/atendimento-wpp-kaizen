@@ -1,5 +1,24 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-08-18] — Sessao 7: seletor de modelo da IA
+
+### Criado
+- `supabase/migrations/0005_modelo_ia.sql`: colunas `modelo` e
+  `modelo_analise` em `yumiwpp_config`.
+- `/admin` → "Modelo da IA": dois seletores (Yumi / analise diaria), lista
+  curada de modelos OpenAI + opcao "Outro" pra digitar qualquer nome. Vazio
+  = continua usando a env var (`OPENAI_MODEL`/`OPENAI_MODEL_ANALISE`), pra
+  nao quebrar quem nunca mexeu no seletor.
+- Ao salvar um modelo novo, cria sozinho a linha zerada em
+  `yumiwpp_precos_modelo` — ja aparece em "Preco dos modelos" pra
+  configurar, sem esperar a primeira chamada real.
+- `lib/yumi/responder.ts` e `lib/analise/gerar.ts` agora recebem o modelo
+  vindo do banco (`yumiwpp_config`), com a env var so como fallback.
+
+### Testado
+- Selecionado `gpt-4.1-mini` pela tela, confirmado no banco (config e
+  criacao automatica da linha de preco), revertido pro padrao depois.
+
 ## [2026-08-18] — Sessao 6: dashboard, custo de IA e analise diaria
 
 ### Criado

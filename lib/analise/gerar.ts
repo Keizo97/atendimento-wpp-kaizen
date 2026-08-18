@@ -109,7 +109,10 @@ export async function gerarAnalise(
   const { inicio, fim } =
     params.periodoDias === 1 ? rangeDoDia(params.dia) : rangeDeDias(params.dia, params.periodoDias)
 
-  const { texto, totalConversas } = await montarTranscricao(admin, inicio, fim)
+  const [{ texto, totalConversas }, { data: config }] = await Promise.all([
+    montarTranscricao(admin, inicio, fim),
+    admin.from('yumiwpp_config').select('modelo_analise').eq('id', 1).maybeSingle(),
+  ])
 
   if (!texto) {
     // Dia sem movimento: grava analise vazia pra tela nao ficar em branco
@@ -126,7 +129,11 @@ export async function gerarAnalise(
     return { ok: true, motivo: 'sem conversas', totalConversas: 0 }
   }
 
-  const modelo = process.env.OPENAI_MODEL_ANALISE || process.env.OPENAI_MODEL || 'gpt-5-mini'
+  const modelo =
+    config?.modelo_analise ||
+    process.env.OPENAI_MODEL_ANALISE ||
+    process.env.OPENAI_MODEL ||
+    'gpt-5-mini'
 
   const completion = await getClient().chat.completions.create({
     model: modelo,

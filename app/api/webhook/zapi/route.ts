@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   const [{ data: config }, valoresTexto, { data: historicoBruto }] = await Promise.all([
     admin
       .from('yumiwpp_config')
-      .select('system_prompt, knowledge_base')
+      .select('system_prompt, knowledge_base, modelo')
       .eq('id', 1)
       .maybeSingle(),
     buscarValoresTexto(admin),
@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
     knowledgeBase: config?.knowledge_base ?? '',
     valoresTexto,
     historico,
+    modelo: config?.modelo,
   })
 
   await registrarUso(admin, resposta.uso, {

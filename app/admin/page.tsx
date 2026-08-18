@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Usuarios from '@/components/admin/Usuarios'
 import Atendentes from '@/components/admin/Atendentes'
 import PrecosModelo from '@/components/admin/PrecosModelo'
+import ModeloIA from '@/components/admin/ModeloIA'
 import type { Role } from '@/lib/auth'
 
 const INTEGRACOES = [
@@ -20,7 +21,7 @@ export default async function AdminPage() {
   const supabase = await createClient()
   const admin = createAdminClient()
 
-  const [{ data: profiles }, { data: authData }, { data: atendentes }, { data: precos }] =
+  const [{ data: profiles }, { data: authData }, { data: atendentes }, { data: precos }, { data: config }] =
     await Promise.all([
       supabase.from('yumiwpp_profiles').select('id, nome, role'),
       admin.auth.admin.listUsers(),
@@ -29,6 +30,7 @@ export default async function AdminPage() {
         .from('yumiwpp_precos_modelo')
         .select('modelo, usd_entrada_1m, usd_saida_1m')
         .order('modelo'),
+      supabase.from('yumiwpp_config').select('modelo, modelo_analise').eq('id', 1).maybeSingle(),
     ])
 
   const emailPorId = new Map(authData?.users.map((u) => [u.id, u.email ?? '']) ?? [])
@@ -57,6 +59,11 @@ export default async function AdminPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-base font-semibold">Atendentes (aviso de escalada)</h2>
         <Atendentes atendentes={atendentes ?? []} />
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-base font-semibold">Modelo da IA</h2>
+        <ModeloIA modelo={config?.modelo ?? ''} modeloAnalise={config?.modelo_analise ?? ''} />
       </section>
 
       <section className="mb-10">

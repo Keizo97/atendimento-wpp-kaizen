@@ -87,3 +87,24 @@ export async function salvarPrecoModelo(modelo: string, formData: FormData) {
   revalidatePath('/admin')
   revalidatePath('/dashboard')
 }
+
+export async function salvarModeloIA(formData: FormData) {
+  const modelo = String(formData.get('modelo') ?? '').trim()
+  const modeloAnalise = String(formData.get('modelo_analise') ?? '').trim()
+
+  const supabase = await createClient()
+  await supabase
+    .from('yumiwpp_config')
+    .update({ modelo: modelo || null, modelo_analise: modeloAnalise || null })
+    .eq('id', 1)
+
+  // Garante que o modelo escolhido ja aparece em "Preco dos modelos" pra
+  // configurar o custo, sem precisar esperar a primeira chamada real.
+  const admin = createAdminClient()
+  for (const m of [modelo, modeloAnalise]) {
+    if (m) await admin.from('yumiwpp_precos_modelo').insert({ modelo: m }).select().maybeSingle()
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+}

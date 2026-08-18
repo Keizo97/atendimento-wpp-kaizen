@@ -81,6 +81,9 @@ export async function gerarResposta(params: {
   knowledgeBase: string
   valoresTexto: string
   historico: MensagemHistorico[]
+  // Vem de yumiwpp_config.modelo (escolhido em /admin). Se vazio, cai pra
+  // env var — assim quem nunca mexeu no seletor continua funcionando igual.
+  modelo?: string | null
 }): Promise<RespostaYumi> {
   const systemFinal =
     resolverPlaceholders(
@@ -97,7 +100,7 @@ export async function gerarResposta(params: {
     ),
   ]
 
-  const modelo = process.env.OPENAI_MODEL || 'gpt-5-mini'
+  const modelo = params.modelo || process.env.OPENAI_MODEL || 'gpt-5-mini'
 
   const completion = await getClient().chat.completions.create({
     model: modelo,
