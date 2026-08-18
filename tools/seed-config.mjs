@@ -1,5 +1,6 @@
-// Le o arquivo "Prompt para yumi.txt" e joga dentro de yumiwpp_config.system_prompt.
-// Rodar sempre que voce editar o .txt e quiser mandar pro banco.
+// Le "Prompt para yumi.txt" e "Base de conhecimento yumi.txt" e joga dentro
+// de yumiwpp_config (system_prompt e knowledge_base).
+// Rodar sempre que voce editar os .txt e quiser mandar pro banco.
 //
 // Uso:  node tools/seed-config.mjs
 //
@@ -9,6 +10,7 @@ import { readFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
 
 const ARQUIVO_PROMPT = 'Prompt para yumi.txt'
+const ARQUIVO_KB = 'Base de conhecimento yumi.txt'
 
 // Carrega o .env.local sem depender de pacote externo
 async function carregarEnv() {
@@ -52,13 +54,22 @@ if (!prompt) {
   process.exit(1)
 }
 
+// Base de conhecimento e opcional: se o arquivo nao existir, so nao mexe nesse campo.
+let knowledgeBase
+try {
+  knowledgeBase = (await readFile(ARQUIVO_KB, 'utf8')).trim()
+} catch {
+  knowledgeBase = null
+}
+
 const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false },
 })
 
-const { error } = await supabase
-  .from('yumiwpp_config')
-  .upsert({ id: 1, system_prompt: prompt }, { onConflict: 'id' })
+const dados = { id: 1, system_prompt: prompt }
+if (knowledgeBase !== null) dados.knowledge_base = knowledgeBase
+
+const { error } = await supabase.from('yumiwpp_config').upsert(dados, { onConflict: 'id' })
 
 if (error) {
   console.error('Erro ao gravar no Supabase:', error.message)
@@ -66,3 +77,8 @@ if (error) {
 }
 
 console.log(`OK. system_prompt atualizado (${prompt.length} caracteres).`)
+if (knowledgeBase !== null) {
+  console.log(`OK. knowledge_base atualizada (${knowledgeBase.length} caracteres).`)
+} else {
+  console.log(`(${ARQUIVO_KB} nao encontrado — knowledge_base nao foi alterada.)`)
+}

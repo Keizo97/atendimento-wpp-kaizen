@@ -1,5 +1,39 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-08-17] — Sessao 5: fila de atendimento, responsividade, handoff
+
+### Criado
+- `supabase/migrations/0003_atendentes.sql` — tabela `yumiwpp_atendentes`.
+- `lib/whatsapp/notificar.ts` — avisa atendentes cadastrados no WhatsApp
+  quando a Yumi escala uma conversa.
+- `/admin` ganhou secao "Atendentes" (CRUD de nome + numero).
+- 3 estados visuais em `/atendimento`: Yumi (bot) / Precisa de atendimento
+  (escalado, ninguem assumiu) / Em atendimento por Fulano. Conversas que
+  precisam de atendimento sempre aparecem no topo da lista.
+- Layout mobile-first em `/atendimento`: lista e chat alternam em telas
+  pequenas (uma por vez, com botao voltar), lado a lado a partir de tablet.
+  Alvos de toque em 44px, input do chat em 16px (evita zoom no Safari).
+- `Base de conhecimento yumi.txt` — arquivo novo, separado do
+  `Prompt para yumi.txt`. `tools/seed-config.mjs` agora manda os dois.
+- README reescrito como guia de deploy em producao (Eduardo vai fazer o
+  setup com Supabase de producao): os 3 SQL em ordem, todas as variaveis de
+  ambiente explicadas, passo a passo completo do primeiro deploy ao teste
+  de ponta a ponta.
+
+### Corrigido
+- Persona da Yumi reescrita varias vezes na sessao ate ficar natural (menos
+  regra de formatacao rigida, mais exemplo de tom); fluxo de reserva parou
+  de perguntar dia/horario quando so devia mandar o link; pergunta de preco
+  generica ("quanto ta o rodizio") agora responde com os valores direto em
+  vez de devolver pergunta.
+- `Prompt para yumi.txt` estava desatualizado no repo (os ajustes de persona
+  foram feitos direto no banco via `/config`). Sincronizado com o que
+  estava live antes de documentar o handoff.
+
+### Pendente
+- Validar em producao de verdade (Eduardo vai configurar Supabase novo,
+  Z-API e testar ponta a ponta).
+
 ## [2026-08-17] — Sessao 1: fases 1 e 2
 
 ### Decisoes
