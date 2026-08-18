@@ -8,6 +8,7 @@ import { enviarMensagem } from '@/lib/whatsapp/zapi'
 import { upsertCliente, conversaAberta } from '@/lib/whatsapp/clientes'
 import { buscarValoresTexto } from '@/lib/yumi/valores'
 import { gerarResposta, type MensagemHistorico } from '@/lib/yumi/responder'
+import { registrarUso } from '@/lib/yumi/custo'
 import { notificarAtendentes } from '@/lib/whatsapp/notificar'
 
 const CONTEXTO_MENSAGENS = Number(process.env.YUMI_CONTEXT_MESSAGES) || 20
@@ -143,10 +144,23 @@ export async function POST(request: NextRequest) {
     historico,
   })
 
+  await registrarUso(admin, resposta.uso, {
+    conversaId: conversa.id,
+    telefone,
+    origem: 'atendimento',
+  })
+
   if (resposta.escalar) {
-    console.log(
-      `[yumi] escalada — telefone=${telefone} motivo=${resposta.motivo} prioridade=${resposta.prioridade} resumo=${resposta.resumo}`
-    )
+    // Grava a escalada ANTES de mexer no modo da conversa: o trigger
+    // yumiwpp_conversas_escalada procura a escalada aberta mais recente
+    // pra carimbar assumido_em/finalizado_em depois.
+    await admin.from('yumiwpp_escaladas').insert({
+      conversa_id: conversa.id,
+      telefone,
+      motivo: resposta.motivo,
+      prioridade: resposta.prioridade,
+      resumo: resposta.resumo,
+    })
 
     // assumido_por fica null de proposito: sinaliza "precisando de atendimento"
     // ate algum gerente clicar em "Assumir atendimento" na tela.

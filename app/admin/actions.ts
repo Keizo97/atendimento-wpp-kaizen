@@ -69,3 +69,21 @@ export async function removerAtendente(id: string) {
   await supabase.from('yumiwpp_atendentes').delete().eq('id', id)
   revalidatePath('/admin')
 }
+
+export async function salvarPrecoModelo(modelo: string, formData: FormData) {
+  const entrada = String(formData.get('usd_entrada_1m') ?? '').replace(',', '.')
+  const saida = String(formData.get('usd_saida_1m') ?? '').replace(',', '.')
+
+  const supabase = await createClient()
+  await supabase
+    .from('yumiwpp_precos_modelo')
+    .update({
+      usd_entrada_1m: Number(entrada) || 0,
+      usd_saida_1m: Number(saida) || 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('modelo', modelo)
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+}

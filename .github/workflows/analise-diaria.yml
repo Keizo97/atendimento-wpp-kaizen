@@ -1,0 +1,18 @@
+name: Análise diária da Yumi
+
+on:
+  schedule:
+    # 11:00 UTC = 08:00 horário de Brasília (nao ajusta sozinho no horario
+    # de verao brasileiro, que nao existe desde 2019 — sem problema)
+    - cron: '0 11 * * *'
+  workflow_dispatch: {} # permite rodar na mao pela aba Actions do GitHub
+
+jobs:
+  rodar-analise:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chama o motor de analise
+        run: |
+          curl -sS -X POST "${{ secrets.APP_URL }}/api/cron/analise?secret=${{ secrets.CRON_SECRET }}" \
+            --fail-with-body \
+            --max-time 280

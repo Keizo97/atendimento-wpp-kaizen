@@ -17,11 +17,11 @@ depende do anterior.
 
 ## Papéis (login)
 
-| Papel     | Acessa                                    |
-|-----------|--------------------------------------------|
-| `gerente` | `/atendimento`                              |
-| `editor`  | `/config`                                   |
-| `admin`   | `/atendimento`, `/config`, `/admin`         |
+| Papel     | Acessa                                              |
+|-----------|-------------------------------------------------------|
+| `gerente` | `/atendimento`                                        |
+| `editor`  | `/config`                                             |
+| `admin`   | `/atendimento`, `/dashboard`, `/config`, `/admin`     |
 
 Proteção em duas camadas: RLS no Supabase (quem pode ler/escrever no banco) +
 checagem de papel no layout de cada área do site. Nenhuma das duas sozinha
@@ -38,11 +38,11 @@ seria suficiente.
    chaves de API do passo 3).
 3. Espere o projeto terminar de provisionar (1-2 minutos).
 
-### 2. Rodar os 3 arquivos SQL, **nessa ordem exata**
+### 2. Rodar os 4 arquivos SQL, **nessa ordem exata**
 
 Menu **SQL Editor** → **New query** → cola o conteúdo do arquivo → **Run**.
-Repete pros três, um de cada vez, na ordem abaixo (a ordem importa, o 2 e o 3
-dependem do que o 1 cria):
+Repete pros quatro, um de cada vez, na ordem abaixo (a ordem importa — cada
+um depende do que o anterior criou):
 
 1. `supabase/migrations/0001_init.sql` — cria as 7 tabelas principais
    (`yumiwpp_profiles`, `clientes`, `conversas`, `mensagens`, `config`,
@@ -55,9 +55,14 @@ dependem do que o 1 cria):
 3. `supabase/migrations/0003_atendentes.sql` — cria a tabela
    `yumiwpp_atendentes` (lista de quem recebe aviso no WhatsApp quando a
    Yumi chama um humano).
+4. `supabase/migrations/0004_dashboard.sql` — cria as tabelas do
+   `/dashboard`: `yumiwpp_precos_modelo` (preço por token, editável em
+   `/admin`), `yumiwpp_uso_ia` (tokens/custo de cada chamada da OpenAI),
+   `yumiwpp_escaladas` (histórico de quando a Yumi chamou humano) e
+   `yumiwpp_analises` (resultado do motor de análise diária).
 
 Se algum der erro de "already exists" é porque já rodou antes — sem problema,
-os três são seguros de rodar de novo (idempotentes).
+os quatro são seguros de rodar de novo (idempotentes).
 
 ### 3. Pegar as chaves do Supabase
 
@@ -96,6 +101,10 @@ ZAPI_WEBHOOK_SECRET=
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5-mini
 YUMI_CONTEXT_MESSAGES=20
+OPENAI_MODEL_ANALISE=
+
+# Dashboard / motor de analise diaria
+CRON_SECRET=
 
 # Links do restaurante
 NEXT_PUBLIC_LINK_RESERVA=
@@ -119,6 +128,14 @@ Detalhe de cada uma:
 - **`OPENAI_API_KEY`** — https://platform.openai.com/api-keys
 - **`OPENAI_MODEL`** — `gpt-5-mini` é o padrão usado até aqui (bom custo x
   qualidade). Pode trocar por outro modelo da OpenAI se quiser.
+- **`OPENAI_MODEL_ANALISE`** — opcional. Modelo usado só pelo motor de
+  análise diária (`/dashboard`). Se ficar vazio, usa o mesmo `OPENAI_MODEL`.
+- **`CRON_SECRET`** — protege `POST /api/cron/analise` (o motor de análise
+  diária). Gera do mesmo jeito que o `ZAPI_WEBHOOK_SECRET`:
+  ```bash
+  openssl rand -hex 16
+  ```
+  Você usa esse valor de novo no passo do GitHub Actions, mais abaixo.
 - **`NEXT_PUBLIC_LINK_RESERVA` / `NEXT_PUBLIC_LINK_FILA`** — os links reais
   do Tagme (ou o que for usado). Eles substituem `{{LINK_RESERVA}}` e
   `{{LINK_FILA}}` que aparecem no texto do prompt da Yumi.
@@ -208,14 +225,40 @@ nome + número de WhatsApp de quem deve ser avisado quando a Yumi escalar uma
 conversa pra humano. Pode ser número de pessoa (com DDI+DDD, ex:
 `5519999999999`) ou ID de grupo do Z-API.
 
-### 10. Domínio final e SSL
+### 10. Configurar o dashboard (custo + análise diária)
+
+1. **Preço dos modelos:** tela **`/admin` → Preço dos modelos**. Consulta o
+   preço atual em https://platform.openai.com/docs/pricing (USD por 1
+   milhão de tokens, entrada e saída são valores diferentes) e cadastra pro
+   modelo que está em `OPENAI_MODEL`. Sem isso, o dashboard mostra custo
+   zerado (com aviso na tela, não some silenciosamente).
+2. **Agendar a análise das 8h** — o repositório já vem com
+   `.github/workflows/analise-diaria.yml` configurado, só falta ligar os
+   segredos no GitHub: repositório → **Settings → Secrets and variables →
+   Actions → New repository secret**:
+   - `APP_URL` — `https://SEU_DOMINIO` (sem barra no final)
+   - `CRON_SECRET` — o mesmo valor que você colocou na variável de ambiente
+     do passo 4
+   Isso já é suficiente — o GitHub Actions roda todo dia às 8h (horário de
+   Brasília) sozinho, de graça, sem precisar de nenhum serviço de cron
+   externo. Pra testar sem esperar o dia seguinte, vai na aba **Actions** do
+   repositório → **Análise diária da Yumi** → **Run workflow**.
+3. Alternativa, se preferir não usar GitHub Actions: qualquer serviço de
+   cron (Coolify tem um embutido, ou cron-job.org) chamando
+   `POST https://SEU_DOMINIO/api/cron/analise?secret=SEU_CRON_SECRET` uma
+   vez por dia serve igual.
+
+A tela `/dashboard` (só admin) também tem um botão **"Rodar análise agora"**
+pra gerar sob demanda, sem depender do agendamento.
+
+### 11. Domínio final e SSL
 
 No Coolify: configura o domínio no serviço, o SSL é automático (Let's
 Encrypt). Depois de no ar:
 - Atualiza `NEXT_PUBLIC_APP_URL` pro domínio final.
 - Atualiza a URL do webhook no painel Z-API (passo 8) pro domínio novo.
 
-### 11. Teste de ponta a ponta
+### 12. Teste de ponta a ponta
 
 1. Manda uma mensagem de teste no WhatsApp do restaurante.
 2. Confere se apareceu em `/atendimento` (como `gerente` ou `admin`).
@@ -223,6 +266,10 @@ Encrypt). Depois de no ar:
 4. Manda algo que force escalada (ex: "quero falar com uma pessoa") e
    confere se chegou aviso no WhatsApp de quem foi cadastrado no passo 9, e
    se a conversa aparece marcada **"Precisa de atendimento"** na tela.
+5. No `/dashboard`, clica **"Rodar análise agora"** e confere se aparece
+   resumo, sugestões e o custo em USD das mensagens de teste que você acabou
+   de mandar (o custo só aparece certo se o preço do passo 10 já estiver
+   cadastrado).
 5. Clica **Assumir atendimento**, responde, clica **Finalizar atendimento**
    e confere se a Yumi volta a responder sozinha.
 
@@ -299,6 +346,32 @@ substituídos pelos valores reais de `NEXT_PUBLIC_LINK_RESERVA`/
 `NEXT_PUBLIC_LINK_FILA` em tempo de execução — não precisa editar o prompt
 se o link mudar, só a variável de ambiente.
 
+### Dashboard e custo de IA
+
+Toda chamada à OpenAI (tanto pra responder cliente quanto pra gerar a
+análise diária) grava uma linha em `yumiwpp_uso_ia` com os tokens e o custo
+em USD, calculado na hora com o preço cadastrado em
+`yumiwpp_precos_modelo` (`/admin`). Mudar o preço depois não reescreve
+custo já gravado — só afeta chamadas novas.
+
+Toda vez que a Yumi chama a tool `escalar_humano`, grava uma linha em
+`yumiwpp_escaladas`. Um trigger no banco (`yumiwpp_sincroniza_escalada`)
+carimba sozinho quando alguém assume (`assumido_em`) e quando finaliza
+(`finalizado_em`) — sem precisar de código extra na tela de atendimento,
+que só faz UPDATE simples em `yumiwpp_conversas`.
+
+O motor de análise (`lib/analise/gerar.ts`, chamado por
+`/api/cron/analise`) pega as mensagens do período, manda pra OpenAI com um
+prompt fixo pedindo JSON estruturado (assuntos, gargalos, erros, acertos,
+sugestões com prioridade), e grava em `yumiwpp_analises`. Uma análise por
+combinação de dia+período — rodar de novo pro mesmo dia sobrescreve
+(upsert), não duplica.
+
+As datas do dashboard e do cron seguem horário de Brasília
+(`lib/analise/periodo.ts`), não UTC — importante porque o banco guarda tudo
+em UTC e "o dia de ontem" calculado ingenuamente pegaria o dia errado
+rodando às 8h BRT (11h UTC).
+
 ---
 
 ## Estrutura do projeto
@@ -307,17 +380,20 @@ se o link mudar, só a variável de ambiente.
 app/
   login/              # tela de login
   atendimento/        # inbox do gerente               (gerente, admin)
+  dashboard/           # metricas, custo, analise diaria (admin)
   config/             # editor de prompt/KB/valores     (editor, admin)
-  admin/              # usuarios, atendentes, integracoes (admin)
+  admin/              # usuarios, atendentes, precos, integracoes (admin)
   api/
     webhook/zapi/      # entrada do WhatsApp (publica, valida ?secret=)
     enviar/            # saida manual do gerente (autenticada por sessao)
+    cron/analise/       # motor de analise diaria (secret ou admin logado)
   manifest.ts          # gera o manifest.webmanifest (PWA)
 components/
   Shell.tsx            # cabecalho com navegacao por papel
   atendimento/          # Inbox, ConversaChat, tipos
+  dashboard/             # Filtros, Cartao, RodarAnalise
   config/                # PromptForm, ValoresManager
-  admin/                 # Usuarios, Atendentes
+  admin/                 # Usuarios, Atendentes, PrecosModelo
 lib/
   auth.ts               # getPerfil / exigirPapel
   supabase/
@@ -331,11 +407,18 @@ lib/
   yumi/
     responder.ts             # chama a OpenAI, tool escalar_humano
     valores.ts                 # formata yumiwpp_valores pro contexto
+    custo.ts                    # calcula e grava custo USD de cada chamada
+  analise/
+    periodo.ts                  # datas em horario de Brasilia
+    gerar.ts                     # motor: conversas -> OpenAI -> yumiwpp_analises
+    metricas.ts                  # metricas calculadas direto do banco
 proxy.ts                # (era middleware.ts) renova sessao, barra sem login
 supabase/
-  migrations/            # os 3 SQL, rodar em ordem
+  migrations/            # os 4 SQL, rodar em ordem
 tools/
   seed-config.mjs         # manda os dois .txt pro banco
+.github/workflows/
+  analise-diaria.yml       # cron gratis do GitHub Actions, 8h BRT
 Dockerfile               # build multi-stage, pronto pro Coolify
 Prompt para yumi.txt      # system prompt da Yumi (editavel por /config tambem)
 Base de conhecimento yumi.txt  # base de conhecimento (idem)

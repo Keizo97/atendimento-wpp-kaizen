@@ -18,9 +18,18 @@ export type Escalada = {
   resumo: string
 }
 
-export type RespostaYumi =
+// Tokens gastos na chamada. Vai pro yumiwpp_uso_ia pra alimentar o dashboard
+// de custo — sem isso nao existe historico de gasto.
+export type UsoTokens = {
+  modelo: string
+  tokensEntrada: number
+  tokensSaida: number
+}
+
+export type RespostaYumi = { uso: UsoTokens } & (
   | ({ escalar: true } & Escalada)
   | { escalar: false; texto: string }
+)
 
 const FERRAMENTA_ESCALAR: OpenAI.Chat.ChatCompletionTool = {
   type: 'function',
@@ -88,12 +97,20 @@ export async function gerarResposta(params: {
     ),
   ]
 
+  const modelo = process.env.OPENAI_MODEL || 'gpt-5-mini'
+
   const completion = await getClient().chat.completions.create({
-    model: process.env.OPENAI_MODEL || 'gpt-5-mini',
+    model: modelo,
     messages: mensagens,
     tools: [FERRAMENTA_ESCALAR],
     tool_choice: 'auto',
   })
+
+  const uso: UsoTokens = {
+    modelo,
+    tokensEntrada: completion.usage?.prompt_tokens ?? 0,
+    tokensSaida: completion.usage?.completion_tokens ?? 0,
+  }
 
   const escolha = completion.choices[0]?.message
   const toolCall = escolha?.tool_calls?.[0]
@@ -106,6 +123,7 @@ export async function gerarResposta(params: {
       // segue com valores padrao se o JSON vier malformado
     }
     return {
+      uso,
       escalar: true,
       motivo: dados.motivo ?? 'nao_informado',
       prioridade: dados.prioridade === 'urgente' ? 'urgente' : 'normal',
@@ -113,5 +131,5 @@ export async function gerarResposta(params: {
     }
   }
 
-  return { escalar: false, texto: escolha?.content?.trim() || 'Desculpa, pode repetir?' }
+  return { uso, escalar: false, texto: escolha?.content?.trim() || 'Desculpa, pode repetir?' }
 }

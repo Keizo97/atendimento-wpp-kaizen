@@ -4,6 +4,7 @@ import type { Perfil, Role } from '@/lib/auth'
 
 const LINKS: { href: string; label: string; papeis: Role[] }[] = [
   { href: '/atendimento', label: 'Atendimento', papeis: ['gerente', 'admin'] },
+  { href: '/dashboard', label: 'Dashboard', papeis: ['admin'] },
   { href: '/config', label: 'Configuração', papeis: ['editor', 'admin'] },
   { href: '/admin', label: 'Admin', papeis: ['admin'] },
 ]

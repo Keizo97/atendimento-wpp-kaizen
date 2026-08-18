@@ -1,5 +1,36 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-08-18] — Sessao 6: dashboard, custo de IA e analise diaria
+
+### Criado
+- `supabase/migrations/0004_dashboard.sql`: `yumiwpp_precos_modelo`,
+  `yumiwpp_uso_ia`, `yumiwpp_escaladas` (com trigger que carimba sozinho
+  quando alguem assume/finaliza um atendimento), `yumiwpp_analises`.
+- `lib/yumi/custo.ts`: calcula e grava o custo USD de cada chamada da
+  OpenAI na hora que ela acontece (preco fixado no historico, nao
+  retroage se o preco mudar depois).
+- `lib/analise/`: motor de analise diaria. Junta as conversas do periodo,
+  manda pra OpenAI pedindo JSON estruturado (assuntos, gargalos, erros,
+  acertos, sugestoes com prioridade), grava em `yumiwpp_analises`.
+  Datas calculadas em horario de Brasilia de proposito (banco guarda UTC).
+- `/api/cron/analise`: roda o motor, aceita `?secret=` (cron) ou sessao de
+  admin (botao "Rodar analise agora" na tela).
+- `.github/workflows/analise-diaria.yml`: GitHub Actions gratis, 8h BRT.
+- `/dashboard` (admin): taxa de resolucao sem humano, custo total/por
+  dia/por conversa, motivos de escalada, tempo ate assumir, volume por
+  hora, tamanho medio de resposta, resumo e sugestoes da analise diaria.
+  Filtro 1d/7d/20d/30d.
+- `/admin`: secao "Preco dos modelos" (USD por 1M tokens, editavel, sem
+  isso o dashboard mostra custo zerado com aviso).
+
+### Testado
+- Ponta a ponta local: migration aplicada, preco de teste cadastrado,
+  motor rodado via `POST /api/cron/analise` contra conversas reais de
+  teste anterior — gerou analise coerente (achou link de reserva repetido,
+  pergunta sem resposta apos handoff, sugestoes especificas). Dashboard
+  conferido no navegador logado como admin: cartoes, grafico de horario e
+  secao de analise renderizando os dados reais.
+
 ## [2026-08-17] — Sessao 5: fila de atendimento, responsividade, handoff
 
 ### Criado

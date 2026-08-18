@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Usuarios from '@/components/admin/Usuarios'
 import Atendentes from '@/components/admin/Atendentes'
+import PrecosModelo from '@/components/admin/PrecosModelo'
 import type { Role } from '@/lib/auth'
 
 const INTEGRACOES = [
@@ -10,6 +11,7 @@ const INTEGRACOES = [
   { chave: 'ZAPI_CLIENT_TOKEN', label: 'Z-API — client token' },
   { chave: 'ZAPI_WEBHOOK_SECRET', label: 'Z-API — segredo do webhook' },
   { chave: 'OPENAI_API_KEY', label: 'OpenAI — chave' },
+  { chave: 'CRON_SECRET', label: 'Segredo do motor de análise diária' },
   { chave: 'NEXT_PUBLIC_LINK_RESERVA', label: 'Link de reserva' },
   { chave: 'NEXT_PUBLIC_LINK_FILA', label: 'Link de fila' },
 ] as const
@@ -18,11 +20,16 @@ export default async function AdminPage() {
   const supabase = await createClient()
   const admin = createAdminClient()
 
-  const [{ data: profiles }, { data: authData }, { data: atendentes }] = await Promise.all([
-    supabase.from('yumiwpp_profiles').select('id, nome, role'),
-    admin.auth.admin.listUsers(),
-    supabase.from('yumiwpp_atendentes').select('id, nome, numero, ativo').order('nome'),
-  ])
+  const [{ data: profiles }, { data: authData }, { data: atendentes }, { data: precos }] =
+    await Promise.all([
+      supabase.from('yumiwpp_profiles').select('id, nome, role'),
+      admin.auth.admin.listUsers(),
+      supabase.from('yumiwpp_atendentes').select('id, nome, numero, ativo').order('nome'),
+      supabase
+        .from('yumiwpp_precos_modelo')
+        .select('modelo, usd_entrada_1m, usd_saida_1m')
+        .order('modelo'),
+    ])
 
   const emailPorId = new Map(authData?.users.map((u) => [u.id, u.email ?? '']) ?? [])
 
@@ -50,6 +57,11 @@ export default async function AdminPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-base font-semibold">Atendentes (aviso de escalada)</h2>
         <Atendentes atendentes={atendentes ?? []} />
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-base font-semibold">Preço dos modelos (custo no dashboard)</h2>
+        <PrecosModelo precos={precos ?? []} />
       </section>
 
       <section>
