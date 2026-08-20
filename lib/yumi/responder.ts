@@ -61,7 +61,8 @@ const FERRAMENTA_ESCALAR: OpenAI.Chat.ChatCompletionTool = {
 }
 
 const INSTRUCAO_FIXA =
-  '\n\nREGRA FIXA DE ESCALADA: siga a secao "QUANDO CHAMAR UM HUMANO" acima e chame a funcao escalar_humano (nunca resolva sozinha) quando o cliente pedir atendimento humano, reclamar, pedir alteracao/cancelamento de reserva, ou o evento for de 15 pessoas ou mais.'
+  '\n\nREGRA FIXA DE ESCALADA: siga a secao "QUANDO CHAMAR UM HUMANO" acima e chame a funcao escalar_humano (nunca resolva sozinha) quando o cliente pedir atendimento humano, reclamar, pedir alteracao/cancelamento de reserva, ou o evento for de 15 pessoas ou mais.' +
+  '\n\nNAO chame escalar_humano de novo so porque no historico voce (ou um atendente) ja chamou antes ou ja disse "ja estou chamando alguem". Julgue pela ULTIMA mensagem do cliente: se o pedido antigo ja foi resolvido (o atendente respondeu no historico) ou o cliente esta falando de outro assunto, responda normalmente. So escalar de novo se o cliente pedir de novo ou trouxer um caso novo que se encaixe na regra.'
 
 let client: OpenAI | null = null
 function getClient(): OpenAI {

@@ -13,6 +13,9 @@ import { notificarAtendentes } from '@/lib/whatsapp/notificar'
 
 const CONTEXTO_MENSAGENS = Number(process.env.YUMI_CONTEXT_MESSAGES) || 20
 const MENSAGEM_ESCALADA = 'Ja estou chamando alguem pra te ajudar, so um instante 🙏'
+// Cliente ficou muito tempo sem mandar msg desde que um humano assumiu/respondeu:
+// solta a conversa de volta pra Yumi sozinha, sem precisar clicar "Finalizar atendimento".
+const MINUTOS_RESET_INATIVIDADE = Number(process.env.YUMI_RESET_INATIVIDADE_MIN) || 30
 
 // Payload padrao do evento "on-message-received" da Z-API.
 // Ainda nao validado com um webhook real: se algum campo vier diferente,
@@ -99,6 +102,34 @@ export async function POST(request: NextRequest) {
 
   await upsertCliente(admin, telefone, body.senderName ?? body.chatName ?? null)
   const conversa = await conversaAberta(admin, telefone)
+
+  // Conversa com humano ha muito tempo, mas cliente sumiu sem o gerente clicar
+  // "Finalizar atendimento": solta a conversa de volta pra Yumi sozinha.
+  // So conta a partir da ULTIMA MSG DO GERENTE — se ainda ta "aguardando"
+  // (Yumi escalou mas ninguem assumiu ainda), isso aqui nao mexe.
+  if (conversa.modo !== 'bot') {
+    const { data: ultimaMsgGerente } = await admin
+      .from('yumiwpp_mensagens')
+      .select('created_at')
+      .eq('conversa_id', conversa.id)
+      .eq('autor', 'gerente')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (ultimaMsgGerente) {
+      const minutosInativo =
+        (Date.now() - new Date(ultimaMsgGerente.created_at).getTime()) / 60_000
+
+      if (minutosInativo >= MINUTOS_RESET_INATIVIDADE) {
+        await admin
+          .from('yumiwpp_conversas')
+          .update({ modo: 'bot', assumido_por: null })
+          .eq('id', conversa.id)
+        conversa.modo = 'bot'
+      }
+    }
+  }
 
   const { error: erroInsercao } = await admin.from('yumiwpp_mensagens').insert({
     conversa_id: conversa.id,

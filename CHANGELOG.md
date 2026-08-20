@@ -1,5 +1,19 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-08-20] — Sessao 8: reset automatico pra Yumi apos atendimento humano
+
+### Corrigido
+- Bug: gerente atendia o cliente e esquecia de clicar "Finalizar
+  atendimento" — na proxima vez que o cliente escrevia, a conversa
+  continuava presa em modo humano (Yumi nunca mais respondia).
+- `app/api/webhook/zapi/route.ts`: antes de gravar a nova msg do cliente,
+  se a conversa esta em modo humano E o cliente ficou
+  `YUMI_RESET_INATIVIDADE_MIN` minutos (padrao 30) sem escrever desde a
+  ULTIMA MSG DO GERENTE, a conversa volta sozinha pro modo bot
+  (`assumido_por` zera tambem). So conta a partir de msg real de gerente —
+  conversa "aguardando" (Yumi escalou, ninguem assumiu ainda) nao e afetada.
+- Nova env var `YUMI_RESET_INATIVIDADE_MIN` (`.env.example`).
+
 ## [2026-08-18] — Sessao 7: seletor de modelo da IA
 
 ### Criado
