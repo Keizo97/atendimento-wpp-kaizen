@@ -104,6 +104,7 @@ ZAPI_WEBHOOK_SECRET=
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5-mini
 YUMI_CONTEXT_MESSAGES=20
+YUMI_RESET_INATIVIDADE_MIN=30
 OPENAI_MODEL_ANALISE=
 
 # Dashboard / motor de analise diaria
@@ -136,6 +137,11 @@ Detalhe de cada uma:
   em branco.
 - **`OPENAI_MODEL_ANALISE`** — mesma lógica, mas pro motor de análise
   diária. Também pode ser trocado por `/admin` sem mexer aqui.
+- **`YUMI_RESET_INATIVIDADE_MIN`** — rede de segurança: se um gerente
+  atendeu e esqueceu de clicar **Finalizar atendimento**, a conversa fica
+  presa em modo `humano` pra sempre. Passado esse tanto de minutos sem o
+  cliente escrever de novo (contado a partir da última mensagem do
+  gerente), o sistema devolve a conversa pra Yumi sozinho. Padrão: `30`.
 - **`CRON_SECRET`** — protege `POST /api/cron/analise` (o motor de análise
   diária). Gera do mesmo jeito que o `ZAPI_WEBHOOK_SECRET`:
   ```bash
@@ -297,7 +303,15 @@ Encrypt). Depois de no ar:
    pro cliente avisando que alguém vai assumir.
 5. Enquanto a conversa está em modo `humano`, a Yumi não responde mais nada
    — só grava o que chega, até um gerente clicar **Finalizar atendimento**
-   (isso devolve pra `bot`).
+   (isso devolve pra `bot` na hora) **ou** o cliente ficar
+   `YUMI_RESET_INATIVIDADE_MIN` minutos calado desde a última mensagem do
+   gerente (devolve sozinho, rede de segurança pra quem esquece de
+   finalizar — não conta se a conversa ainda está só "aguardando" sem
+   ninguém ter assumido).
+6. Pra não reabrir escalada à toa: o prompt fixo instrui a Yumi a julgar
+   pela **última** mensagem do cliente, não pelo histórico — ver uma
+   escalada antiga na conversa (ou a própria mensagem "já estou chamando
+   alguém") não faz ela chamar `escalar_humano` de novo sozinha.
 
 ### Estados de uma conversa (tela `/atendimento`)
 
@@ -420,7 +434,7 @@ lib/
     metricas.ts                  # metricas calculadas direto do banco
 proxy.ts                # (era middleware.ts) renova sessao, barra sem login
 supabase/
-  migrations/            # os 4 SQL, rodar em ordem
+  migrations/            # os 5 SQL, rodar em ordem
 tools/
   seed-config.mjs         # manda os dois .txt pro banco
 .github/workflows/
