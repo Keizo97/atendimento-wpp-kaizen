@@ -10,10 +10,15 @@ export type FragmentoEnviado = {
   envio: Awaited<ReturnType<typeof enviarMensagem>>
 }
 
-// A Yumi separa ideias diferentes com linha em branco (instruido no prompt).
-// Quebra simples (\n) continua dentro da mesma bolha — e so pra juntar frase
-// curta relacionada, tipo lista de precos de um mesmo festival.
-const MAX_FRAGMENTOS = 4
+// A IA nao e confiavel pra controlar quantas linhas em branco ela solta —
+// as vezes separa cada linha do bloco de preco, virando 7-8 bolhas picadas
+// em vez de conversa (bug visto em teste real). Por isso o teto e BAIXO e
+// fixo no codigo, nao depende do modelo se comportar: no maximo 2 bolhas,
+// sempre. Se a IA mandar mais paragrafos que isso, tudo que sobrar do 2o
+// em diante vira UMA bolha so (paragrafos internos ficam com linha em
+// branco dentro da mesma mensagem — isso e normal, gente manda texto
+// longo numa mensagem so o tempo todo).
+const MAX_FRAGMENTOS = 2
 
 export function dividirEmMensagens(texto: string): string[] {
   const partes = texto

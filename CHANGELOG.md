@@ -34,6 +34,24 @@
     mas so entre festivais tem linha em branco (1 bolha por festival, nao
     1 bolha por linha).
 
+## [2026-09-08] — Sessao 9b: fragmentacao picada demais em teste real
+
+### Corrigido
+- Testado em producao (numero de teste): pergunta ampla de preco saiu em
+  7-8 bolhas picadas em vez de conversa. A IA nao respeitou a instrucao
+  fina de "linha em branco so entre festivais" — meteu linha em branco
+  em quase toda linha do bloco, do jeito que o resto do prompt ja e
+  formatado. Confiar no modelo pra controlar espacamento exato nao e
+  confiavel.
+- `lib/whatsapp/enviarFragmentado.ts`: `MAX_FRAGMENTOS` de 4 pra **2**,
+  teto fixo no codigo — nao depende mais do modelo se comportar. Se a IA
+  mandar mais paragrafos que isso, tudo vira 1 bolha so a partir do 2
+  paragrafo (paragrafos internos com linha em branco dentro da mesma
+  mensagem, normal).
+- `Prompt para yumi.txt`: tirada a instrucao fina de "linha simples vs
+  linha em branco" nos festivais — nao importa mais, o teto de 2 no
+  codigo garante o resultado independente de como a IA espaca.
+
 ## [2026-08-20] — Sessao 8: reset automatico pra Yumi apos atendimento humano
 
 ### Corrigido
