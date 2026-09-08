@@ -3,11 +3,14 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+// Retorna o nome que ficou salvo pro cliente (existente tem prioridade
+// sobre o que chegou agora — nome de perfil pode mudar/sumir, nao quer
+// sobrescrever um nome bom por um vazio depois).
 export async function upsertCliente(
   admin: SupabaseClient,
   telefone: string,
   nome?: string | null
-) {
+): Promise<{ nome: string | null }> {
   const { data: existente } = await admin
     .from('yumiwpp_clientes')
     .select('telefone, total_mensagens, nome')
@@ -15,15 +18,16 @@ export async function upsertCliente(
     .maybeSingle()
 
   if (existente) {
+    const nomeFinal = existente.nome ?? nome ?? null
     await admin
       .from('yumiwpp_clientes')
       .update({
         ultimo_contato: new Date().toISOString(),
         total_mensagens: existente.total_mensagens + 1,
-        nome: existente.nome ?? nome ?? null,
+        nome: nomeFinal,
       })
       .eq('telefone', telefone)
-    return
+    return { nome: nomeFinal }
   }
 
   await admin.from('yumiwpp_clientes').insert({
@@ -31,6 +35,7 @@ export async function upsertCliente(
     nome: nome ?? null,
     total_mensagens: 1,
   })
+  return { nome: nome ?? null }
 }
 
 export async function conversaAberta(

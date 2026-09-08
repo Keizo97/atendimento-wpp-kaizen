@@ -85,10 +85,27 @@ export async function gerarResposta(params: {
   // Vem de yumiwpp_config.modelo (escolhido em /admin). Se vazio, cai pra
   // env var — assim quem nunca mexeu no seletor continua funcionando igual.
   modelo?: string | null
+  // lib/yumi/horario.ts — dia/hora calculados, nao pedidos pra IA como tool
+  // (deterministico, mais confiavel calculado do que "lembrado" pelo modelo).
+  horarioTexto?: string
+  // lib/yumi/nome.ts — ja vem validado (null se nao parecer nome de pessoa).
+  nomeCliente?: string | null
 }): Promise<RespostaYumi> {
+  const blocoNome = params.nomeCliente
+    ? `NOME DO CLIENTE: ${params.nomeCliente}. Pode chamar por esse nome de vez em quando (ex: no cumprimento), com moderação — não repita o nome toda mensagem, fica forçado.`
+    : null
+
   const systemFinal =
     resolverPlaceholders(
-      [params.systemPrompt, params.knowledgeBase, params.valoresTexto].filter(Boolean).join('\n\n')
+      [
+        params.systemPrompt,
+        params.knowledgeBase,
+        params.valoresTexto,
+        params.horarioTexto,
+        blocoNome,
+      ]
+        .filter(Boolean)
+        .join('\n\n')
     ) + INSTRUCAO_FIXA
 
   const mensagens: OpenAI.Chat.ChatCompletionMessageParam[] = [

@@ -1,5 +1,53 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-09-08] — Sessao 9c: desfaz fragmentacao de valores, horario calculado, nome do cliente
+
+### Corrigido
+- Fragmentacao de bolha voltou atras. Keizo confirmou que valores/preco
+  ele mesmo responde com um blocao unico (ctrl+c ctrl+v) — nao faz sentido
+  a Yumi picar isso em mensagens. `lib/whatsapp/enviarFragmentado.ts`:
+  `MAX_FRAGMENTOS` agora e 1 por padrao (configuravel por
+  `YUMI_MAX_BOLHAS` se algum dia fizer sentido fragmentar outro fluxo).
+  Continua com `delayTyping`/`delayMessage` da Z-API na mensagem unica —
+  isso sozinho ja tira a resposta instantanea.
+- `Prompt para yumi.txt`: tirada toda mencao a "2 bolhas", agora e so
+  "uma mensagem, com pausa de digitando antes".
+
+### Criado
+- `lib/yumi/horario.ts`: calcula se o restaurante esta aberto AGORA
+  (dia da semana + hora, fuso America/Sao_Paulo) e injeta como texto no
+  contexto da IA — feito deterministico no codigo em vez de tool que a IA
+  precisaria lembrar de chamar (mesma logica da correcao da fragmentacao:
+  coisa calculavel fica no codigo, nao entregue pro modelo). Nao cobre
+  feriado (sem tabela de feriados); nesse caso a IA cai pra secao
+  HORARIOS da base de conhecimento.
+- `lib/yumi/nome.ts`: `primeiroNomeValido()` — filtra o nome que vem do
+  Z-API (`senderName`/`chatName`). So libera se sobrar pelo menos uma
+  letra depois de tirar emoji; corta perfil generico ("WhatsApp"),
+  numero de telefone disfarçado de nome, nome vazio/so simbolo. Usa so o
+  primeiro nome (tom mais informal).
+- `lib/whatsapp/clientes.ts`: `upsertCliente()` agora retorna o nome
+  resolvido do cliente (existente tem prioridade sobre o que chegou
+  agora, pra nao sobrescrever nome bom por um vazio depois).
+- `lib/yumi/responder.ts`: `gerarResposta()` ganha `horarioTexto` e
+  `nomeCliente`, entram no contexto junto com KB/valores. Nome vem com
+  instrucao embutida ("chame com moderacao, nao repita toda hora").
+- `Prompt para yumi.txt`: secao "HORÁRIO ATUAL" explicando como usar o
+  bloco calculado (e quando NAO usar — feriado).
+- `app/api/webhook/zapi/route.ts`: liga tudo — pega `cliente.nome` do
+  upsert, calcula `statusFuncionamento()`, passa os dois pra
+  `gerarResposta`.
+
+### Testado
+- `next build` limpo, `tsc --noEmit` e `eslint` sem erro nos arquivos
+  tocados.
+- Logica de horario testada com 4 horarios (sabado almoco, sabado
+  jantar, domingo noite sem jantar, terca de manha antes de abrir) —
+  todos calcularam certo.
+- Filtro de nome testado com 10 casos (nome normal, so emoji,
+  "WhatsApp", telefone disfarçado, nome com emoji junto, nome de
+  empresa) — todos filtraram como esperado.
+
 ## [2026-09-08] — Sessao 9: resposta parecia bot, corrigido envio fragmentado + delay
 
 ### Diagnostico

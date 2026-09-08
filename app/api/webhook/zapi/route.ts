@@ -10,6 +10,8 @@ import { buscarValoresTexto } from '@/lib/yumi/valores'
 import { gerarResposta, type MensagemHistorico } from '@/lib/yumi/responder'
 import { registrarUso } from '@/lib/yumi/custo'
 import { notificarAtendentes } from '@/lib/whatsapp/notificar'
+import { statusFuncionamento } from '@/lib/yumi/horario'
+import { primeiroNomeValido } from '@/lib/yumi/nome'
 
 const CONTEXTO_MENSAGENS = Number(process.env.YUMI_CONTEXT_MESSAGES) || 20
 const MENSAGEM_ESCALADA = 'Ja estou chamando alguem pra te ajudar, so um instante 🙏'
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
   const texto = extrairTexto(body)
   if (!texto) return NextResponse.json({ ok: true })
 
-  await upsertCliente(admin, telefone, body.senderName ?? body.chatName ?? null)
+  const cliente = await upsertCliente(admin, telefone, body.senderName ?? body.chatName ?? null)
   const conversa = await conversaAberta(admin, telefone)
 
   // Conversa com humano ha muito tempo, mas cliente sumiu sem o gerente clicar
@@ -174,6 +176,8 @@ export async function POST(request: NextRequest) {
     valoresTexto,
     historico,
     modelo: config?.modelo,
+    horarioTexto: statusFuncionamento(),
+    nomeCliente: primeiroNomeValido(cliente.nome),
   })
 
   await registrarUso(admin, resposta.uso, {
