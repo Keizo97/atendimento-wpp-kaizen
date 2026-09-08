@@ -4,7 +4,7 @@
 // digitadas direto no celular do numero conectado.
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { enviarMensagem } from '@/lib/whatsapp/zapi'
+import { enviarRespostaFragmentada } from '@/lib/whatsapp/enviarFragmentado'
 import { upsertCliente, conversaAberta } from '@/lib/whatsapp/clientes'
 import { buscarValoresTexto } from '@/lib/yumi/valores'
 import { gerarResposta, type MensagemHistorico } from '@/lib/yumi/responder'
@@ -208,26 +208,32 @@ export async function POST(request: NextRequest) {
       resumo: resposta.resumo,
     })
 
-    const envio = await enviarMensagem(telefone, MENSAGEM_ESCALADA)
-    await admin.from('yumiwpp_mensagens').insert({
-      conversa_id: conversa.id,
-      telefone,
-      autor: 'yumi',
-      texto: MENSAGEM_ESCALADA,
-      zapi_message_id: envio.ok ? envio.messageId : null,
-    })
+    const fragmentos = await enviarRespostaFragmentada(telefone, MENSAGEM_ESCALADA)
+    for (const { texto: fragmentoTexto, envio } of fragmentos) {
+      await admin.from('yumiwpp_mensagens').insert({
+        conversa_id: conversa.id,
+        telefone,
+        autor: 'yumi',
+        texto: fragmentoTexto,
+        zapi_message_id: envio.ok ? envio.messageId : null,
+      })
+    }
 
     return NextResponse.json({ ok: true })
   }
 
-  const envio = await enviarMensagem(telefone, resposta.texto)
-  await admin.from('yumiwpp_mensagens').insert({
-    conversa_id: conversa.id,
-    telefone,
-    autor: 'yumi',
-    texto: resposta.texto,
-    zapi_message_id: envio.ok ? envio.messageId : null,
-  })
+  // Manda em varias bolhas (uma por paragrafo da resposta), com "Digitando..."
+  // entre elas, em vez de um textao so — ver lib/whatsapp/enviarFragmentado.ts.
+  const fragmentos = await enviarRespostaFragmentada(telefone, resposta.texto)
+  for (const { texto: fragmentoTexto, envio } of fragmentos) {
+    await admin.from('yumiwpp_mensagens').insert({
+      conversa_id: conversa.id,
+      telefone,
+      autor: 'yumi',
+      texto: fragmentoTexto,
+      zapi_message_id: envio.ok ? envio.messageId : null,
+    })
+  }
 
   return NextResponse.json({ ok: true })
 }

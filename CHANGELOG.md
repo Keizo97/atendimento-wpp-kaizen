@@ -1,5 +1,39 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-09-08] — Sessao 9: resposta parecia bot, corrigido envio fragmentado + delay
+
+### Diagnostico
+- Causa 1: `enviarMensagem()` mandava a resposta inteira numa bolha so do
+  WhatsApp, sem pausa nenhuma — mesmo quando o prompt instruia "manda em
+  mensagens separadas". Nao existia mecanismo pra isso.
+- Causa 2: secao "Formato fixo dos festivais" do prompt mandava usar
+  SEMPRE um bloco com bullet `▸` e emoji de cabeçalho pra qualquer pergunta
+  de preco — inclusive pergunta pontual de 1 item. Como Valores e 69% do
+  volume de mensagens (visto no /admin), a maioria das respostas saia com
+  cara de catalogo/menu, nao de conversa.
+- A Z-API ja suporta nativamente `delayTyping` (mostra "Digitando..." por
+  N segundos antes de entregar) e `delayMessage` (pausa antes de comecar).
+  Nenhum dos dois estava sendo usado.
+
+### Corrigido
+- `lib/whatsapp/zapi.ts`: `enviarMensagem()` agora aceita `delayTyping` e
+  `delayMessage` (segundos, 1-15) e manda pra Z-API.
+- `lib/whatsapp/enviarFragmentado.ts` (novo): quebra a resposta da Yumi em
+  ate 4 mensagens por linha em branco (paragrafo = bolha nova), calcula um
+  `delayTyping` proporcional ao tamanho de cada pedaco (~14 char/s,
+  limitado a 1-6s) e manda cada bolha em sequencia.
+- `app/api/webhook/zapi/route.ts`: troca as duas chamadas diretas a
+  `enviarMensagem` (resposta normal e mensagem de escalada) por
+  `enviarRespostaFragmentada`, gravando uma linha em `yumiwpp_mensagens`
+  por bolha enviada (cada uma com seu proprio `zapi_message_id`).
+- `Prompt para yumi.txt`:
+  - Explica que linha em branco agora e literal = mensagem separada;
+    quebra de linha simples continua na mesma bolha.
+  - Separa preco em dois modos: pergunta pontual (1 opcao) → frase
+    natural, sem bloco; pergunta ampla/comparativo → bloco estruturado,
+    mas so entre festivais tem linha em branco (1 bolha por festival, nao
+    1 bolha por linha).
+
 ## [2026-08-20] — Sessao 8: reset automatico pra Yumi apos atendimento humano
 
 ### Corrigido
