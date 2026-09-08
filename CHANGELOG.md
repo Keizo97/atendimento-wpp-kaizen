@@ -1,6 +1,47 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
-## [2026-09-08] — Sessao 9c: desfaz fragmentacao de valores, horario calculado, nome do cliente
+## [2026-09-08] — Sessao 9d: buffer de mensagens (debounce) + regra de horario limite de reserva
+
+### Problema
+- Cliente mandando varias mensagens em bolhas separadas ("quero reservar" /
+  "3 pessoas" / "hoje no jantar" / "as 22:00") fazia o webhook responder a
+  CADA bolha isolada — 4 respostas repetindo o link de reserva, cada uma
+  so com o pedaco de informacao daquele momento.
+- Nao existia validacao de horario limite de reserva: cliente pedia 22h,
+  IA confirmava como se fosse valido, sem saber que o corte real e 20h
+  (diferente do horario de fechamento do jantar).
+
+### Criado
+- `lib/whatsapp/buffer.ts`: `agendarResposta(telefone, executar)` —
+  debounce em memoria por telefone (`Map<string, Timeout>`, delay
+  `YUMI_BUFFER_MS`, default 8000ms). Cada mensagem nova do mesmo numero
+  cancela o timer anterior e reagenda. So dispara quando o cliente para
+  de mandar mensagem. So funciona com 1 instancia do container rodando
+  (timer em memoria do processo) — compativel com o deploy atual
+  (Coolify/Docker, container unico). Se um dia escalar horizontal,
+  precisa virar fila/lock no banco.
+
+### Alterado
+- `app/api/webhook/zapi/route.ts`: a geracao de resposta foi extraida pra
+  `responderCliente()`, chamada via `agendarResposta()` em vez de rodar
+  na hora. `responderCliente()` reconfere o modo da conversa (pode ter
+  mudado pra "humano" durante a espera) e busca nome/config/historico
+  frescos no momento em que o timer dispara.
+- Nova funcao `mesclarLevaAtual()`: junta as mensagens consecutivas do
+  cliente no final do historico (a leva que ainda nao tem resposta da
+  Yumi) numa UNICA mensagem "user", com quebra de linha entre elas. O
+  resto do historico (perguntas antigas ja respondidas) fica intacto,
+  preservando a memoria da conversa. Sem isso a IA podia se confundir e
+  voltar a responder um assunto antigo (ex: preco) em vez do pedido atual
+  (ex: reserva), por causa das varias bolhas soltas no fim do historico.
+- `Prompt para yumi.txt`, secao RESERVAS: nova subsecao "HORARIO LIMITE
+  DE RESERVA" — reserva formal so ate 13h (almoco) e 20h (jantar), mesmo
+  horario todos os dias (confirmado com Keizo). Fora desse horario, IA
+  avisa o corte e explica que ainda da pra vir por ordem de chegada
+  (fila de espera, sujeito a disponibilidade) antes de mandar o link.
+
+### Testado
+- `tsc --noEmit` e `eslint` sem erro nos arquivos tocados.
 
 ### Corrigido
 - Fragmentacao de bolha voltou atras. Keizo confirmou que valores/preco

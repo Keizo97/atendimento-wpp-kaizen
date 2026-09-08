@@ -3,9 +3,11 @@
 // Ligar tambem o webhook "notifySentByMe" (mesma URL) pra pegar mensagens
 // digitadas direto no celular do numero conectado.
 import { NextRequest, NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enviarRespostaFragmentada } from '@/lib/whatsapp/enviarFragmentado'
 import { upsertCliente, conversaAberta } from '@/lib/whatsapp/clientes'
+import { agendarResposta } from '@/lib/whatsapp/buffer'
 import { buscarValoresTexto } from '@/lib/yumi/valores'
 import { gerarResposta, type MensagemHistorico } from '@/lib/yumi/responder'
 import { registrarUso } from '@/lib/yumi/custo'
@@ -102,7 +104,9 @@ export async function POST(request: NextRequest) {
   const texto = extrairTexto(body)
   if (!texto) return NextResponse.json({ ok: true })
 
-  const cliente = await upsertCliente(admin, telefone, body.senderName ?? body.chatName ?? null)
+  // Retorno nao usado aqui: o nome salvo e relido em responderCliente() no
+  // momento em que o buffer disparar (pode ter mudado durante a espera).
+  await upsertCliente(admin, telefone, body.senderName ?? body.chatName ?? null)
   const conversa = await conversaAberta(admin, telefone)
 
   // Conversa com humano ha muito tempo, mas cliente sumiu sem o gerente clicar
@@ -153,22 +157,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const [{ data: config }, valoresTexto, { data: historicoBruto }] = await Promise.all([
-    admin
-      .from('yumiwpp_config')
-      .select('system_prompt, knowledge_base, modelo')
-      .eq('id', 1)
-      .maybeSingle(),
-    buscarValoresTexto(admin),
-    admin
-      .from('yumiwpp_mensagens')
-      .select('autor, texto')
-      .eq('conversa_id', conversa.id)
-      .order('created_at', { ascending: false })
-      .limit(CONTEXTO_MENSAGENS),
-  ])
+  // Nao responde na hora: agenda com debounce (lib/whatsapp/buffer.ts).
+  // Se o cliente mandar mais mensagens em sequencia, cada uma reinicia o
+  // timer — so gera UMA resposta quando ele parar de digitar, ja com todo
+  // o contexto acumulado (a busca do historico acontece so quando o timer
+  // disparar, entao pega tudo que foi inserido durante a espera).
+  agendarResposta(telefone, () => responderCliente(admin, telefone, conversa.id))
 
-  const historico: MensagemHistorico[] = (historicoBruto ?? []).slice().reverse()
+  return NextResponse.json({ ok: true })
+}
+
+async function responderCliente(
+  admin: SupabaseClient,
+  telefone: string,
+  conversaId: string
+): Promise<void> {
+  // Reconfere o estado mais recente: pode ter mudado durante a espera do
+  // debounce (ex: gerente assumiu a conversa nesse meio-tempo).
+  const { data: conversaAtual } = await admin
+    .from('yumiwpp_conversas')
+    .select('modo')
+    .eq('id', conversaId)
+    .maybeSingle()
+
+  if (!conversaAtual || conversaAtual.modo !== 'bot') return
+
+  const [{ data: config }, valoresTexto, { data: historicoBruto }, { data: cliente }] =
+    await Promise.all([
+      admin
+        .from('yumiwpp_config')
+        .select('system_prompt, knowledge_base, modelo')
+        .eq('id', 1)
+        .maybeSingle(),
+      buscarValoresTexto(admin),
+      admin
+        .from('yumiwpp_mensagens')
+        .select('autor, texto')
+        .eq('conversa_id', conversaId)
+        .order('created_at', { ascending: false })
+        .limit(CONTEXTO_MENSAGENS),
+      admin.from('yumiwpp_clientes').select('nome').eq('telefone', telefone).maybeSingle(),
+    ])
+
+  const historico: MensagemHistorico[] = mesclarLevaAtual(
+    (historicoBruto ?? []).slice().reverse()
+  )
 
   const resposta = await gerarResposta({
     systemPrompt: config?.system_prompt ?? '',
@@ -177,11 +210,11 @@ export async function POST(request: NextRequest) {
     historico,
     modelo: config?.modelo,
     horarioTexto: statusFuncionamento(),
-    nomeCliente: primeiroNomeValido(cliente.nome),
+    nomeCliente: primeiroNomeValido(cliente?.nome ?? null),
   })
 
   await registrarUso(admin, resposta.uso, {
-    conversaId: conversa.id,
+    conversaId,
     telefone,
     origem: 'atendimento',
   })
@@ -191,7 +224,7 @@ export async function POST(request: NextRequest) {
     // yumiwpp_conversas_escalada procura a escalada aberta mais recente
     // pra carimbar assumido_em/finalizado_em depois.
     await admin.from('yumiwpp_escaladas').insert({
-      conversa_id: conversa.id,
+      conversa_id: conversaId,
       telefone,
       motivo: resposta.motivo,
       prioridade: resposta.prioridade,
@@ -203,7 +236,7 @@ export async function POST(request: NextRequest) {
     await admin
       .from('yumiwpp_conversas')
       .update({ modo: 'humano', assumido_por: null })
-      .eq('id', conversa.id)
+      .eq('id', conversaId)
 
     await notificarAtendentes(admin, {
       telefoneCliente: telefone,
@@ -215,7 +248,7 @@ export async function POST(request: NextRequest) {
     const fragmentos = await enviarRespostaFragmentada(telefone, MENSAGEM_ESCALADA)
     for (const { texto: fragmentoTexto, envio } of fragmentos) {
       await admin.from('yumiwpp_mensagens').insert({
-        conversa_id: conversa.id,
+        conversa_id: conversaId,
         telefone,
         autor: 'yumi',
         texto: fragmentoTexto,
@@ -223,7 +256,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // Manda em varias bolhas (uma por paragrafo da resposta), com "Digitando..."
@@ -231,13 +264,38 @@ export async function POST(request: NextRequest) {
   const fragmentos = await enviarRespostaFragmentada(telefone, resposta.texto)
   for (const { texto: fragmentoTexto, envio } of fragmentos) {
     await admin.from('yumiwpp_mensagens').insert({
-      conversa_id: conversa.id,
+      conversa_id: conversaId,
       telefone,
       autor: 'yumi',
       texto: fragmentoTexto,
       zapi_message_id: envio.ok ? envio.messageId : null,
     })
   }
+}
 
-  return NextResponse.json({ ok: true })
+// Junta a leva de mensagens do cliente que ainda nao tem resposta (o final
+// da conversa, apos a ultima fala da Yumi/gerente) numa UNICA mensagem de
+// usuario, unindo o texto com quebra de linha. O resto do historico
+// (perguntas antigas ja respondidas) fica intacto, como memoria da
+// conversa. Sem isso, cada bolha do buffer vira um turno "user" separado
+// no fim do historico e a IA pode se confundir e voltar a responder um
+// assunto antigo (ex: preco) em vez do pedido atual (ex: reserva).
+function mesclarLevaAtual(historico: MensagemHistorico[]): MensagemHistorico[] {
+  let inicioLeva = historico.length
+  for (let i = historico.length - 1; i >= 0; i--) {
+    if (historico[i].autor !== 'cliente') break
+    inicioLeva = i
+  }
+
+  // Nao ha leva nova sem resposta (ultima mensagem nao e do cliente, ou
+  // historico vazio): nada pra mesclar.
+  if (inicioLeva >= historico.length) return historico
+
+  const antes = historico.slice(0, inicioLeva)
+  const leva = historico.slice(inicioLeva)
+
+  return [
+    ...antes,
+    { autor: 'cliente', texto: leva.map((m) => m.texto).join('\n') },
+  ]
 }
