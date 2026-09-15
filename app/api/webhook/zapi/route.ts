@@ -16,10 +16,21 @@ import { statusFuncionamento } from '@/lib/yumi/horario'
 import { primeiroNomeValido } from '@/lib/yumi/nome'
 
 const CONTEXTO_MENSAGENS = Number(process.env.YUMI_CONTEXT_MESSAGES) || 20
-const MENSAGEM_ESCALADA = 'Ja estou chamando alguem pra te ajudar, so um instante 🙏'
+const MENSAGEM_ESCALADA = 'Já estou chamando alguém pra te ajudar, só um instante 🙏'
+// Se a OpenAI falhar mesmo depois do retry (ver lib/yumi/responder.ts), o
+// cliente recebe isso em vez de ficar sem resposta nenhuma.
+const MENSAGEM_ERRO_IA = 'Desculpa, deu um probleminha aqui do meu lado — pode mandar de novo, por favor? 🙏'
 // Cliente ficou muito tempo sem mandar msg desde que um humano assumiu/respondeu:
 // solta a conversa de volta pra Yumi sozinha, sem precisar clicar "Finalizar atendimento".
 const MINUTOS_RESET_INATIVIDADE = Number(process.env.YUMI_RESET_INATIVIDADE_MIN) || 30
+// Escalou e NINGUEM respondeu ainda (nem assumiu): depois de 24h sem
+// resposta, solta de volta pra Yumi em vez de deixar o cliente preso pra
+// sempre esperando um humano que nunca apareceu.
+const MINUTOS_RESET_SEM_RESPOSTA = Number(process.env.YUMI_RESET_SEM_RESPOSTA_MIN) || 24 * 60
+// Evita spam no WhatsApp dos atendentes: se o mesmo telefone ja escalou
+// dentro dessa janela, a escalada e registrada normalmente (conversa ainda
+// vai pra modo humano) mas a notificacao via WhatsApp nao e reenviada.
+const MINUTOS_COOLDOWN_NOTIFICACAO = Number(process.env.YUMI_NOTIFICACAO_COOLDOWN_MIN) || 15
 
 // Payload padrao do evento "on-message-received" da Z-API.
 // Ainda nao validado com um webhook real: se algum campo vier diferente,
@@ -134,6 +145,30 @@ export async function POST(request: NextRequest) {
           .eq('id', conversa.id)
         conversa.modo = 'bot'
       }
+    } else {
+      // Ninguem do time respondeu ainda nessa conversa (nem assumiu): olha
+      // a escalada mais recente e, se passou de 24h sem resposta, solta o
+      // cliente de volta pra Yumi em vez de deixa-lo esperando pra sempre.
+      const { data: escaladaAberta } = await admin
+        .from('yumiwpp_escaladas')
+        .select('created_at')
+        .eq('conversa_id', conversa.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (escaladaAberta) {
+        const minutosSemResposta =
+          (Date.now() - new Date(escaladaAberta.created_at).getTime()) / 60_000
+
+        if (minutosSemResposta >= MINUTOS_RESET_SEM_RESPOSTA) {
+          await admin
+            .from('yumiwpp_conversas')
+            .update({ modo: 'bot', assumido_por: null })
+            .eq('id', conversa.id)
+          conversa.modo = 'bot'
+        }
+      }
     }
   }
 
@@ -203,15 +238,34 @@ async function responderCliente(
     (historicoBruto ?? []).slice().reverse()
   )
 
-  const resposta = await gerarResposta({
-    systemPrompt: config?.system_prompt ?? '',
-    knowledgeBase: config?.knowledge_base ?? '',
-    valoresTexto,
-    historico,
-    modelo: config?.modelo,
-    horarioTexto: statusFuncionamento(),
-    nomeCliente: primeiroNomeValido(cliente?.nome ?? null),
-  })
+  let resposta: Awaited<ReturnType<typeof gerarResposta>>
+  try {
+    resposta = await gerarResposta({
+      systemPrompt: config?.system_prompt ?? '',
+      knowledgeBase: config?.knowledge_base ?? '',
+      valoresTexto,
+      historico,
+      modelo: config?.modelo,
+      horarioTexto: statusFuncionamento(),
+      nomeCliente: primeiroNomeValido(cliente?.nome ?? null),
+    })
+  } catch (erro) {
+    // OpenAI falhou mesmo apos o retry (ver lib/yumi/responder.ts). Sem isso
+    // o cliente ficava sem resposta nenhuma — melhor avisar que deu erro do
+    // que deixar a conversa no vácuo.
+    console.error('[webhook zapi] falha ao gerar resposta da IA:', erro)
+    const fragmentosErro = await enviarRespostaFragmentada(telefone, MENSAGEM_ERRO_IA)
+    for (const { texto: fragmentoTexto, envio } of fragmentosErro) {
+      await admin.from('yumiwpp_mensagens').insert({
+        conversa_id: conversaId,
+        telefone,
+        autor: 'yumi',
+        texto: fragmentoTexto,
+        zapi_message_id: envio.ok ? envio.messageId : null,
+      })
+    }
+    return
+  }
 
   await registrarUso(admin, resposta.uso, {
     conversaId,
@@ -220,6 +274,20 @@ async function responderCliente(
   })
 
   if (resposta.escalar) {
+    // Verifica ANTES de inserir a escalada atual: se esse telefone ja
+    // escalou dentro do cooldown, nao manda notificacao de novo (mas a
+    // conversa ainda vai pra modo humano normalmente, so a notificacao no
+    // WhatsApp dos atendentes que e pulada — evita spam de alguem mandando
+    // varias mensagens que disparam escalada repetida).
+    const limiteCooldown = new Date(Date.now() - MINUTOS_COOLDOWN_NOTIFICACAO * 60_000).toISOString()
+    const { data: escaladaRecente } = await admin
+      .from('yumiwpp_escaladas')
+      .select('id')
+      .eq('telefone', telefone)
+      .gte('created_at', limiteCooldown)
+      .limit(1)
+      .maybeSingle()
+
     // Grava a escalada ANTES de mexer no modo da conversa: o trigger
     // yumiwpp_conversas_escalada procura a escalada aberta mais recente
     // pra carimbar assumido_em/finalizado_em depois.
@@ -238,12 +306,14 @@ async function responderCliente(
       .update({ modo: 'humano', assumido_por: null })
       .eq('id', conversaId)
 
-    await notificarAtendentes(admin, {
-      telefoneCliente: telefone,
-      motivo: resposta.motivo,
-      prioridade: resposta.prioridade,
-      resumo: resposta.resumo,
-    })
+    if (!escaladaRecente) {
+      await notificarAtendentes(admin, {
+        telefoneCliente: telefone,
+        motivo: resposta.motivo,
+        prioridade: resposta.prioridade,
+        resumo: resposta.resumo,
+      })
+    }
 
     const fragmentos = await enviarRespostaFragmentada(telefone, MENSAGEM_ESCALADA)
     for (const { texto: fragmentoTexto, envio } of fragmentos) {
