@@ -1,5 +1,53 @@
 # CHANGELOG — Yumi Atendimento WhatsApp
 
+## [2026-09-24] — Sessao 11: redesign UI/UX — tema claro/escuro + chat estilo WhatsApp
+
+### Contexto
+Pedido do Keizo: o gerente (nao-tecnico) tambem vai usar o painel, entao a
+tela de atendimento precisava ficar mais intuitiva e familiar — parecida
+com o WhatsApp de verdade — alem de dar a opcao de tema claro/escuro em
+todo o site.
+
+### Criado
+- **Tema claro/escuro em todo o site**, com botao de alternar no cabecalho
+  (`components/ThemeToggle.tsx`). Usa a variante `dark` do Tailwind v4
+  (`@custom-variant dark` em `app/globals.css`) ligada por classe `.dark`
+  na `<html>`. Escolha salva em `localStorage` (`yumi-theme`); sem escolha
+  salva, usa a preferencia do sistema. Script inline em `app/layout.tsx`
+  aplica o tema antes da 1a pintura pra nao piscar tema errado.
+- **`components/atendimento/Avatar.tsx`**: avatar circular com iniciais do
+  cliente, cor estavel por telefone (mesmo cliente sempre com a mesma cor).
+- **Papel de parede do chat** (`.chat-wallpaper` em `app/globals.css`):
+  pontilhado sutil de fundo atras das mensagens, como no WhatsApp.
+
+### Alterado
+- **`components/atendimento/ConversaChat.tsx`**: bolhas de mensagem no
+  estilo WhatsApp (cliente a esquerda em branco/cinza, Yumi a direita em
+  azul-petroleo, gerente a direita em verde), horario em cada bolha, campo
+  de texto em formato pilula com botao de enviar circular (icone de
+  avião de papel) no lugar do botao "Enviar".
+- **`components/atendimento/Inbox.tsx`**: campo de busca por nome/telefone,
+  avatar em cada conversa, horario relativo (hoje = hora, senao = data)
+  no estilo lista do WhatsApp.
+- **`components/Shell.tsx`**: logo "Y" verde, aba ativa em verde solido,
+  botao de tema.
+- Todas as telas (`dashboard`, `admin`, `config`, `login` e seus
+  componentes) migradas do tema escuro fixo pra suportar os dois temas —
+  cores adaptadas pra manter contraste de acordo com WCAG AA nos dois.
+- Botoes de acao primaria (Salvar, Adicionar, Entrar, Criar usuario,
+  Finalizar atendimento etc.) padronizados pra verde (`emerald-600`),
+  mesma cor nos dois temas, reforcando a identidade visual "WhatsApp" em
+  vez do botao branco/preto invertido que tinha antes.
+
+### Verificado
+- `npx tsc --noEmit` sem erros.
+- Tema claro e escuro conferidos visualmente na tela de login (unica rota
+  publica — as demais exigem sessao real, que nao foi criada nesta sessao
+  pra nao violar a regra de nunca criar conta sem pedido explicito) e por
+  toggle manual da classe `.dark` no DOM.
+- **Pendente**: Keizo conferir visualmente `/atendimento`, `/dashboard`,
+  `/admin` e `/config` logado, e o toggle de tema dentro do `Shell`.
+
 ## [2026-09-15] — Sessao 10: auditoria de seguranca (prompt injection) + correcoes antes de prod
 
 ### Contexto

@@ -27,10 +27,10 @@ export default function Filtros({ diasAtual }: { diasAtual: number }) {
         <button
           key={p.dias}
           onClick={() => trocar(p.dias)}
-          className={`min-h-11 rounded-lg px-3 text-sm font-medium transition ${
+          className={`min-h-11 cursor-pointer rounded-lg px-3 text-sm font-medium transition ${
             p.dias === diasAtual
-              ? 'bg-neutral-100 text-neutral-900'
-              : 'border border-neutral-800 text-neutral-300 hover:bg-neutral-900'
+              ? 'bg-emerald-600 text-white'
+              : 'border border-neutral-200 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900'
           }`}
         >
           {p.label}

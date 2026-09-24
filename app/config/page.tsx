@@ -20,8 +20,10 @@ export default async function ConfigPage() {
 
   return (
     <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-xl font-semibold">Configuração da Yumi</h1>
-      <p className="mt-1 mb-8 text-sm text-neutral-400">
+      <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        Configuração da Yumi
+      </h1>
+      <p className="mt-1 mb-8 text-sm text-neutral-500 dark:text-neutral-400">
         Mudanças aqui valem pra próxima mensagem — sem precisar reiniciar nada.
       </p>
 
@@ -34,7 +36,9 @@ export default async function ConfigPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold">Valores e itens</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">
+          Valores e itens
+        </h2>
         <ValoresManager valores={valores ?? []} />
       </section>
     </main>

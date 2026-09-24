@@ -1,12 +1,32 @@
 @import "tailwindcss";
 
-/* Tema escuro fixo. As cores ficam nas classes Tailwind dos componentes. */
+/* Tema por classe .dark na <html>, controlado pelo ThemeToggle (ver app/layout.tsx). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html {
-  color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
+}
+
+/* Scrollbar fina e discreta nos dois temas. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
+}
+
+/* Papel de parede do chat, no estilo WhatsApp: pontilhado sutil de fundo. */
+.chat-wallpaper {
+  background-color: #f0ede8;
+  background-image: radial-gradient(circle at 8px 8px, rgba(0, 0, 0, 0.04) 1px, transparent 0);
+  background-size: 26px 26px;
+}
+
+.dark .chat-wallpaper {
+  background-color: #0b141a;
+  background-image: radial-gradient(circle at 8px 8px, rgba(255, 255, 255, 0.035) 1px, transparent 0);
+  background-size: 26px 26px;
 }

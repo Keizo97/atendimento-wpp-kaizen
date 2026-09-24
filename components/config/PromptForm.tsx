@@ -20,7 +20,7 @@ export default function PromptForm({
     <form action={formAction} className="flex flex-col gap-4">
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <label htmlFor="system_prompt" className="text-sm font-medium text-neutral-200">
+          <label htmlFor="system_prompt" className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
             System prompt da Yumi
           </label>
           {atualizadoEm && (
@@ -32,8 +32,8 @@ export default function PromptForm({
         <p className="mb-2 text-xs text-neutral-500">
           Persona, regras de escrita, quando escalar pra humano e o cardápio/base de
           conhecimento. Use{' '}
-          <code className="rounded bg-neutral-800 px-1">{'{{LINK_RESERVA}}'}</code> e{' '}
-          <code className="rounded bg-neutral-800 px-1">{'{{LINK_FILA}}'}</code> onde quiser
+          <code className="rounded bg-neutral-200 px-1 dark:bg-neutral-800">{'{{LINK_RESERVA}}'}</code> e{' '}
+          <code className="rounded bg-neutral-200 px-1 dark:bg-neutral-800">{'{{LINK_FILA}}'}</code> onde quiser
           que os links reais entrem.
         </p>
         <textarea
@@ -41,12 +41,12 @@ export default function PromptForm({
           name="system_prompt"
           defaultValue={systemPrompt}
           rows={22}
-          className="w-full resize-y rounded-lg border border-neutral-800 bg-neutral-900 p-3 font-mono text-xs text-neutral-100 outline-none focus:border-neutral-500"
+          className="w-full resize-y rounded-lg border border-neutral-300 bg-white p-3 font-mono text-xs text-neutral-900 outline-none focus:border-emerald-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
         />
       </div>
 
       <div>
-        <label htmlFor="knowledge_base" className="mb-1 block text-sm font-medium text-neutral-200">
+        <label htmlFor="knowledge_base" className="mb-1 block text-sm font-medium text-neutral-800 dark:text-neutral-200">
           Base de conhecimento extra (opcional)
         </label>
         <p className="mb-2 text-xs text-neutral-500">
@@ -58,15 +58,17 @@ export default function PromptForm({
           name="knowledge_base"
           defaultValue={knowledgeBase}
           rows={8}
-          className="w-full resize-y rounded-lg border border-neutral-800 bg-neutral-900 p-3 font-mono text-xs text-neutral-100 outline-none focus:border-neutral-500"
+          className="w-full resize-y rounded-lg border border-neutral-300 bg-white p-3 font-mono text-xs text-neutral-900 outline-none focus:border-emerald-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
         />
       </div>
 
       {estado.erro && (
-        <p className="rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-300">{estado.erro}</p>
+        <p className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700 dark:bg-red-950/60 dark:text-red-300">
+          {estado.erro}
+        </p>
       )}
       {estado.ok && (
-        <p className="rounded-lg bg-emerald-950/60 px-3 py-2 text-sm text-emerald-300">
+        <p className="rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
           Salvo. A Yumi já usa essa versão na próxima mensagem.
         </p>
       )}
@@ -74,7 +76,7 @@ export default function PromptForm({
       <button
         type="submit"
         disabled={pendente}
-        className="self-start rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-white disabled:opacity-50"
+        className="self-start cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pendente ? 'Salvando...' : 'Salvar'}
       </button>

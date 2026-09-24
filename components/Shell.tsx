@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { sair } from '@/app/login/actions'
+import ThemeToggle from '@/components/ThemeToggle'
 import type { Perfil, Role } from '@/lib/auth'
 
 const LINKS: { href: string; label: string; papeis: Role[] }[] = [
@@ -21,9 +22,14 @@ export default function Shell({
   const visiveis = LINKS.filter((l) => l.papeis.includes(perfil.role))
 
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="flex shrink-0 items-center gap-1 border-b border-neutral-800 bg-neutral-950 px-2 py-2 sm:gap-3 sm:px-4">
-        <span className="hidden shrink-0 px-2 font-semibold sm:inline">Yumi</span>
+    <div className="flex h-dvh flex-col bg-white dark:bg-neutral-950">
+      <header className="flex shrink-0 items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-3 sm:px-4 dark:border-neutral-800 dark:bg-neutral-950">
+        <span className="hidden shrink-0 items-center gap-2 px-2 sm:flex">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
+            Y
+          </span>
+          <span className="font-semibold text-neutral-900 dark:text-neutral-100">Yumi</span>
+        </span>
 
         <nav className="flex flex-1 gap-1 overflow-x-auto">
           {visiveis.map((l) => (
@@ -33,8 +39,8 @@ export default function Shell({
               aria-current={ativo === l.href ? 'page' : undefined}
               className={`flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-medium transition ${
                 ativo === l.href
-                  ? 'bg-neutral-800 text-neutral-100'
-                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
               }`}
             >
               {l.label}
@@ -42,14 +48,16 @@ export default function Shell({
           ))}
         </nav>
 
-        <span className="hidden shrink-0 text-sm text-neutral-400 md:inline">
+        <ThemeToggle />
+
+        <span className="hidden shrink-0 text-sm text-neutral-500 md:inline dark:text-neutral-400">
           {perfil.nome} · {perfil.role}
         </span>
 
         <form action={sair} className="shrink-0">
           <button
             type="submit"
-            className="flex min-h-11 items-center rounded-lg border border-neutral-800 px-3 text-sm text-neutral-300 transition hover:bg-neutral-900"
+            className="flex min-h-11 cursor-pointer items-center rounded-lg border border-neutral-200 px-3 text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
           >
             Sair
           </button>

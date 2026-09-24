@@ -19,15 +19,34 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0b0b0c',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0b0c' },
+  ],
 }
+
+// Aplica o tema salvo (ou a preferência do sistema, na 1a visita) antes da
+// primeira pintura, pra nao piscar o tema errado por uma fracao de segundo.
+const SCRIPT_TEMA = `
+try {
+  var salvo = localStorage.getItem('yumi-theme');
+  var escuro = salvo ? salvo === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.classList.toggle('dark', escuro);
+} catch (e) {}
+`
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
-      <body className="min-h-dvh bg-neutral-950 text-neutral-100 antialiased">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
+      <body
+        className="min-h-dvh bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100"
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

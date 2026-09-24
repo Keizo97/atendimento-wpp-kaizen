@@ -51,8 +51,8 @@ export default async function DashboardPage({
     <main className="mx-auto max-w-5xl p-4 sm:p-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          <p className="mt-1 text-sm text-neutral-400">
+          <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Dashboard</h1>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             Desempenho da Yumi e custo de operação.
           </p>
         </div>
@@ -64,7 +64,7 @@ export default async function DashboardPage({
       </div>
 
       {!metricas.precoConfigurado && (
-        <div className="mb-6 rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
           Preço do modelo não configurado — os custos aparecem zerados. Cadastre o valor por
           milhão de tokens em <span className="font-medium">Admin → Preço dos modelos</span>.
         </div>
@@ -72,7 +72,9 @@ export default async function DashboardPage({
 
       {/* Decisao de negocio */}
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-400">A Yumi está valendo a pena?</h2>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+          A Yumi está valendo a pena?
+        </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Cartao
             destaque
@@ -108,7 +110,7 @@ export default async function DashboardPage({
 
       {/* Operacional */}
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-400">Operação</h2>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400">Operação</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Cartao
             titulo="Escaladas pra humano"
@@ -137,42 +139,44 @@ export default async function DashboardPage({
         </div>
 
         {metricas.motivos.length > 0 && (
-          <div className="mt-4 rounded-xl border border-neutral-800 p-4">
+          <div className="mt-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
             <p className="mb-3 text-xs text-neutral-500">
               Por que caiu pra humano (o que ensinar pra ela)
             </p>
             <div className="flex flex-col gap-2">
               {metricas.motivos.map((m) => (
                 <div key={m.motivo} className="flex items-center gap-3 text-sm">
-                  <span className="w-48 shrink-0 truncate text-neutral-300">
+                  <span className="w-48 shrink-0 truncate text-neutral-700 dark:text-neutral-300">
                     {ROTULO_MOTIVO[m.motivo] ?? m.motivo}
                   </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-900">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-900">
                     <div
                       className="h-full rounded-full bg-amber-500"
                       style={{ width: `${(m.total / metricas.motivos[0].total) * 100}%` }}
                     />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-neutral-400">{m.total}</span>
+                  <span className="w-8 shrink-0 text-right text-neutral-500 dark:text-neutral-400">
+                    {m.total}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border border-neutral-800 p-4">
+        <div className="mt-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
           <p className="mb-3 text-xs text-neutral-500">Mensagens de cliente por hora do dia</p>
           <div className="flex h-24 items-end gap-0.5">
             {metricas.porHora.map((h) => (
               <div
                 key={h.hora}
                 title={`${h.hora}h — ${h.total} mensagens`}
-                className="flex-1 rounded-t bg-neutral-700"
+                className="flex-1 rounded-t bg-neutral-300 dark:bg-neutral-700"
                 style={{ height: `${Math.max((h.total / maxHora) * 100, 2)}%` }}
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[10px] text-neutral-600">
+          <div className="mt-1 flex justify-between text-[10px] text-neutral-400 dark:text-neutral-600">
             <span>0h</span>
             <span>12h</span>
             <span>23h</span>
@@ -182,7 +186,9 @@ export default async function DashboardPage({
 
       {/* Qualidade */}
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-400">Qualidade das respostas</h2>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+          Qualidade das respostas
+        </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Cartao
             titulo="Tamanho médio da resposta"
@@ -213,17 +219,17 @@ export default async function DashboardPage({
 
       {/* Analise da IA */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-neutral-400">
+        <h2 className="mb-3 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
           Análise automática
           {analise && (
-            <span className="ml-2 font-normal text-neutral-600">
+            <span className="ml-2 font-normal text-neutral-400 dark:text-neutral-600">
               referente a {new Date(`${analise.data_referencia}T12:00:00Z`).toLocaleDateString('pt-BR')}
             </span>
           )}
         </h2>
 
         {!analise && (
-          <div className="rounded-xl border border-neutral-800 p-4 text-sm text-neutral-500">
+          <div className="rounded-xl border border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-800">
             Nenhuma análise gerada ainda. Ela roda sozinha todo dia às 8h, ou clica em
             &quot;Rodar análise agora&quot; aqui em cima.
           </div>
@@ -232,14 +238,14 @@ export default async function DashboardPage({
         {analise && (
           <div className="flex flex-col gap-4">
             {analise.resumo && (
-              <div className="rounded-xl border border-neutral-800 p-4 text-sm leading-relaxed text-neutral-300">
+              <div className="rounded-xl border border-neutral-200 p-4 text-sm leading-relaxed text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
                 {analise.resumo}
               </div>
             )}
 
             {dados?.sugestoes && dados.sugestoes.length > 0 && (
-              <div className="rounded-xl border border-emerald-900/50 bg-emerald-950/10 p-4">
-                <p className="mb-3 text-xs font-medium text-emerald-400">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/10">
+                <p className="mb-3 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   O que mudar pra melhorar
                 </p>
                 <ul className="flex flex-col gap-3">
@@ -249,16 +255,16 @@ export default async function DashboardPage({
                         <span
                           className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
                             s.prioridade === 'alta'
-                              ? 'bg-red-950/60 text-red-300'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
                               : s.prioridade === 'media'
-                                ? 'bg-amber-950/60 text-amber-300'
-                                : 'bg-neutral-800 text-neutral-400'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                                : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
                           }`}
                         >
                           {s.prioridade}
                         </span>
                         <div>
-                          <p className="text-neutral-200">{s.mudanca}</p>
+                          <p className="text-neutral-800 dark:text-neutral-200">{s.mudanca}</p>
                           <p className="mt-0.5 text-xs text-neutral-500">{s.motivo}</p>
                         </div>
                       </div>
@@ -270,12 +276,12 @@ export default async function DashboardPage({
 
             <div className="grid gap-4 md:grid-cols-2">
               {dados?.assuntos && dados.assuntos.length > 0 && (
-                <div className="rounded-xl border border-neutral-800 p-4">
+                <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <p className="mb-3 text-xs text-neutral-500">Assuntos mais perguntados</p>
                   <ul className="flex flex-col gap-1.5 text-sm">
                     {dados.assuntos.map((a, i) => (
                       <li key={i} className="flex justify-between gap-2">
-                        <span className="truncate text-neutral-300">{a.tema}</span>
+                        <span className="truncate text-neutral-700 dark:text-neutral-300">{a.tema}</span>
                         <span className="shrink-0 text-neutral-500">{a.mencoes}</span>
                       </li>
                     ))}
@@ -284,12 +290,12 @@ export default async function DashboardPage({
               )}
 
               {dados?.gargalos && dados.gargalos.length > 0 && (
-                <div className="rounded-xl border border-neutral-800 p-4">
+                <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <p className="mb-3 text-xs text-neutral-500">Gargalos</p>
                   <ul className="flex flex-col gap-2 text-sm">
                     {dados.gargalos.map((g, i) => (
                       <li key={i}>
-                        <p className="text-neutral-300">{g.problema}</p>
+                        <p className="text-neutral-700 dark:text-neutral-300">{g.problema}</p>
                         <p className="text-xs text-neutral-500">{g.impacto}</p>
                       </li>
                     ))}
@@ -298,11 +304,11 @@ export default async function DashboardPage({
               )}
 
               {dados?.nao_soube_responder && dados.nao_soube_responder.length > 0 && (
-                <div className="rounded-xl border border-neutral-800 p-4">
+                <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <p className="mb-3 text-xs text-neutral-500">
                     Não soube responder (vira base de conhecimento)
                   </p>
-                  <ul className="flex list-inside list-disc flex-col gap-1 text-sm text-neutral-300">
+                  <ul className="flex list-inside list-disc flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
                     {dados.nao_soube_responder.map((p, i) => (
                       <li key={i}>{p}</li>
                     ))}
@@ -311,14 +317,14 @@ export default async function DashboardPage({
               )}
 
               {dados?.erros && dados.erros.length > 0 && (
-                <div className="rounded-xl border border-neutral-800 p-4">
+                <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <p className="mb-3 text-xs text-neutral-500">Erros cometidos</p>
                   <ul className="flex flex-col gap-2 text-sm">
                     {dados.erros.map((e, i) => (
                       <li key={i}>
-                        <p className="text-neutral-300">{e.descricao}</p>
+                        <p className="text-neutral-700 dark:text-neutral-300">{e.descricao}</p>
                         {e.exemplo && (
-                          <p className="mt-0.5 border-l-2 border-neutral-800 pl-2 text-xs text-neutral-500 italic">
+                          <p className="mt-0.5 border-l-2 border-neutral-200 pl-2 text-xs text-neutral-500 italic dark:border-neutral-800">
                             {e.exemplo}
                           </p>
                         )}
@@ -329,9 +335,9 @@ export default async function DashboardPage({
               )}
 
               {dados?.acertos && dados.acertos.length > 0 && (
-                <div className="rounded-xl border border-neutral-800 p-4">
+                <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                   <p className="mb-3 text-xs text-neutral-500">O que funcionou bem</p>
-                  <ul className="flex list-inside list-disc flex-col gap-1 text-sm text-neutral-300">
+                  <ul className="flex list-inside list-disc flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
                     {dados.acertos.map((a, i) => (
                       <li key={i}>{a}</li>
                     ))}
@@ -341,7 +347,7 @@ export default async function DashboardPage({
             </div>
 
             {analises && analises.length > 1 && (
-              <details className="rounded-xl border border-neutral-800 p-4">
+              <details className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
                 <summary className="cursor-pointer text-xs text-neutral-500">
                   Análises anteriores ({analises.length - 1})
                 </summary>
@@ -351,7 +357,7 @@ export default async function DashboardPage({
                       <span className="text-neutral-500">
                         {new Date(`${a.data_referencia}T12:00:00Z`).toLocaleDateString('pt-BR')}:
                       </span>{' '}
-                      <span className="text-neutral-300">{a.resumo}</span>
+                      <span className="text-neutral-700 dark:text-neutral-300">{a.resumo}</span>
                     </li>
                   ))}
                 </ul>

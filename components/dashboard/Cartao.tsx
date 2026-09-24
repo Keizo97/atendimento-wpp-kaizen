@@ -12,13 +12,17 @@ export default function Cartao({
   return (
     <div
       className={`rounded-xl border p-4 ${
-        destaque ? 'border-emerald-900/60 bg-emerald-950/20' : 'border-neutral-800'
+        destaque
+          ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/20'
+          : 'border-neutral-200 dark:border-neutral-800'
       }`}
     >
       <p className="text-xs text-neutral-500">{titulo}</p>
       <p
         className={`mt-1 text-2xl font-semibold ${
-          destaque ? 'text-emerald-300' : 'text-neutral-100'
+          destaque
+            ? 'text-emerald-700 dark:text-emerald-300'
+            : 'text-neutral-900 dark:text-neutral-100'
         }`}
       >
         {valor}

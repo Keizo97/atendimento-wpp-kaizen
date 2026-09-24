@@ -46,33 +46,39 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-xl font-semibold">Admin</h1>
-      <p className="mt-1 mb-8 text-sm text-neutral-400">
+      <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Admin</h1>
+      <p className="mt-1 mb-8 text-sm text-neutral-500 dark:text-neutral-400">
         Usuários e status das integrações. Segredos ficam em variáveis de ambiente, nunca aqui.
       </p>
 
       <section className="mb-10">
-        <h2 className="mb-3 text-base font-semibold">Usuários</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">Usuários</h2>
         <Usuarios usuarios={usuarios} />
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-3 text-base font-semibold">Atendentes (aviso de escalada)</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">
+          Atendentes (aviso de escalada)
+        </h2>
         <Atendentes atendentes={atendentes ?? []} />
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-3 text-base font-semibold">Modelo da IA</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">
+          Modelo da IA
+        </h2>
         <ModeloIA modelo={config?.modelo ?? ''} modeloAnalise={config?.modelo_analise ?? ''} />
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-3 text-base font-semibold">Preço dos modelos (custo no dashboard)</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">
+          Preço dos modelos (custo no dashboard)
+        </h2>
         <PrecosModelo precos={precos ?? []} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold">Integrações</h2>
+        <h2 className="mb-3 text-base font-semibold text-neutral-900 dark:text-neutral-100">Integrações</h2>
         <div className="flex flex-col gap-1.5">
           {INTEGRACOES.map((item) => {
             const valor = process.env[item.chave]
@@ -80,14 +86,14 @@ export default async function AdminPage() {
             return (
               <div
                 key={item.chave}
-                className="flex items-center justify-between rounded-lg border border-neutral-800 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
               >
-                <span className="text-neutral-300">{item.label}</span>
+                <span className="text-neutral-700 dark:text-neutral-300">{item.label}</span>
                 <span
                   className={`rounded px-2 py-0.5 text-xs ${
                     configurado
-                      ? 'bg-emerald-950/60 text-emerald-300'
-                      : 'bg-red-950/60 text-red-300'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
                   }`}
                 >
                   {configurado ? 'configurado' : 'faltando'}

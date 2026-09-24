@@ -32,7 +32,7 @@ function SeletorModelo({
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-neutral-400">{label}</label>
+      <label className="text-xs text-neutral-500 dark:text-neutral-400">{label}</label>
       <select
         value={outro ? 'outro' : select}
         onChange={(e) => {
@@ -40,7 +40,7 @@ function SeletorModelo({
           setSelect(v)
           setOutro(v === 'outro')
         }}
-        className="min-h-11 rounded border border-neutral-800 bg-neutral-900 px-2 text-sm text-neutral-100 sm:min-h-0 sm:py-1.5"
+        className="min-h-11 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 sm:min-h-0 sm:py-1.5 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
       >
         <option value="">(usa a variável de ambiente do servidor)</option>
         {MODELOS_CONHECIDOS.map((m) => (
@@ -56,7 +56,7 @@ function SeletorModelo({
           name={name}
           defaultValue={conhecido ? '' : valorInicial}
           placeholder="nome exato do modelo"
-          className="min-h-11 rounded border border-neutral-800 bg-neutral-900 px-2 text-sm text-neutral-100 sm:min-h-0 sm:py-1.5"
+          className="min-h-11 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 sm:min-h-0 sm:py-1.5 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
         />
       ) : (
         <input type="hidden" name={name} value={select === 'outro' ? '' : select} />
@@ -112,12 +112,12 @@ export default function ModeloIA({
           type="submit"
           disabled={pendente}
           onClick={() => setSalvo(false)}
-          className="min-h-11 self-start rounded-lg bg-neutral-100 px-4 text-sm font-medium text-neutral-900 disabled:opacity-50 sm:min-h-0 sm:py-2"
+          className="min-h-11 cursor-pointer self-start rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-2"
         >
           {pendente ? 'Salvando...' : 'Salvar'}
         </button>
         {salvo && !pendente && (
-          <span className="text-sm text-emerald-400">
+          <span className="text-sm text-emerald-700 dark:text-emerald-400">
             Salvo — já vale na próxima mensagem/análise.
           </span>
         )}

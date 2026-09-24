@@ -32,11 +32,11 @@ export default function RodarAnalise({ dia, dias }: { dia: string; dias: number 
       <button
         onClick={rodar}
         disabled={estado === 'rodando'}
-        className="min-h-11 rounded-lg border border-neutral-700 px-3 text-sm font-medium text-neutral-300 transition hover:bg-neutral-900 disabled:opacity-50"
+        className="min-h-11 cursor-pointer rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
       >
         {estado === 'rodando' ? 'Analisando...' : 'Rodar análise agora'}
       </button>
-      {erro && <span className="text-xs text-red-400">{erro}</span>}
+      {erro && <span className="text-xs text-red-600 dark:text-red-400">{erro}</span>}
     </div>
   )
 }

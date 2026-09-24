@@ -20,7 +20,7 @@ type Valor = {
 // Mobile: cada item vira um cartao empilhado (2 colunas de campo).
 // A partir de sm (640px): volta pra uma linha compacta, como tabela.
 const CAMPO =
-  'min-h-11 rounded border border-neutral-800 bg-neutral-900 px-2 text-sm sm:min-h-0 sm:py-1'
+  'min-h-11 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 sm:min-h-0 sm:py-1 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100'
 
 function LinhaValor({ valor }: { valor: Valor }) {
   const [pendente, startTransition] = useTransition()
@@ -29,7 +29,7 @@ function LinhaValor({ valor }: { valor: Valor }) {
   return (
     <form
       action={(fd) => startTransition(() => salvar(fd))}
-      className="mb-2 grid grid-cols-2 gap-2 rounded-lg border border-neutral-900 p-3 sm:mb-0 sm:grid-cols-[1fr_1fr_100px_1fr_auto_auto] sm:items-center sm:rounded-none sm:border-0 sm:border-b sm:p-0 sm:py-2"
+      className="mb-2 grid grid-cols-2 gap-2 rounded-lg border border-neutral-100 p-3 sm:mb-0 sm:grid-cols-[1fr_1fr_100px_1fr_auto_auto] sm:items-center sm:rounded-none sm:border-0 sm:border-b sm:p-0 sm:py-2 dark:border-neutral-900"
     >
       <input name="item" defaultValue={valor.item} className={CAMPO} />
       <input
@@ -48,7 +48,7 @@ function LinhaValor({ valor }: { valor: Valor }) {
       <button
         type="submit"
         disabled={pendente}
-        className="min-h-11 rounded border border-neutral-700 px-2 text-xs text-neutral-300 hover:bg-neutral-800 disabled:opacity-50 sm:min-h-0 sm:py-1"
+        className="min-h-11 cursor-pointer rounded border border-neutral-300 px-2 text-xs text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-1 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
       >
         Salvar
       </button>
@@ -56,10 +56,10 @@ function LinhaValor({ valor }: { valor: Valor }) {
         <button
           type="button"
           onClick={() => startTransition(() => alternarAtivoValor(valor.id, !valor.ativo))}
-          className={`min-h-11 flex-1 rounded px-2 text-xs sm:min-h-0 sm:flex-none sm:py-1 ${
+          className={`min-h-11 flex-1 cursor-pointer rounded px-2 text-xs sm:min-h-0 sm:flex-none sm:py-1 ${
             valor.ativo
-              ? 'bg-emerald-950/60 text-emerald-300'
-              : 'bg-neutral-800 text-neutral-500'
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+              : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-500'
           }`}
         >
           {valor.ativo ? 'ativo' : 'inativo'}
@@ -67,7 +67,7 @@ function LinhaValor({ valor }: { valor: Valor }) {
         <button
           type="button"
           onClick={() => startTransition(() => removerValor(valor.id))}
-          className="min-h-11 flex-1 rounded px-2 text-xs text-red-400 hover:bg-red-950/40 sm:min-h-0 sm:flex-none sm:py-1"
+          className="min-h-11 flex-1 cursor-pointer rounded px-2 text-xs text-red-600 hover:bg-red-100 sm:min-h-0 sm:flex-none sm:py-1 dark:text-red-400 dark:hover:bg-red-950/40"
         >
           remover
         </button>
@@ -101,7 +101,7 @@ export default function ValoresManager({ valores }: { valores: Valor[] }) {
 
       <form
         action={(fd) => startTransition(() => criarValor(fd))}
-        className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-neutral-800 p-3 sm:grid-cols-[1fr_1fr_100px_1fr_auto] sm:items-center sm:rounded-none sm:border-0 sm:p-0"
+        className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-dashed border-neutral-300 p-3 sm:grid-cols-[1fr_1fr_100px_1fr_auto] sm:items-center sm:rounded-none sm:border-0 sm:p-0 dark:border-neutral-800"
       >
         <input name="item" placeholder="novo item" required className={CAMPO} />
         <input name="categoria" placeholder="categoria" className={CAMPO} />
@@ -110,7 +110,7 @@ export default function ValoresManager({ valores }: { valores: Valor[] }) {
         <button
           type="submit"
           disabled={pendente}
-          className="col-span-2 min-h-11 rounded bg-neutral-100 px-3 text-xs font-medium text-neutral-900 disabled:opacity-50 sm:col-span-1 sm:min-h-0 sm:py-1.5"
+          className="col-span-2 min-h-11 cursor-pointer rounded bg-emerald-600 px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:min-h-0 sm:py-1.5"
         >
           Adicionar
         </button>
